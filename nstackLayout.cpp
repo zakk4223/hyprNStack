@@ -424,22 +424,22 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
 	if (orientation == NSTACK_ORIENTATION_LEFT && i >= numStacks-1) {
 		scaledSize = monMax - stackStart;
 	} else if (orientation == NSTACK_ORIENTATION_RIGHT && i >= numStacks-1) {
-		scaledSize = PMASTERNODE->position.x - stackStart;
+		scaledSize = (PMASTERNODE->position.x - PMONITOR->vecPosition.x - PMONITOR->vecReservedTopLeft.x) - stackStart;
 	} else if (orientation == NSTACK_ORIENTATION_TOP && i >= numStacks-1) {
 		scaledSize = monMax - stackStart;
 	} else if (orientation == NSTACK_ORIENTATION_BOTTOM && i >= numStacks-1) {
-		scaledSize = PMASTERNODE->position.y - stackStart;
+		scaledSize = (PMASTERNODE->position.y - PMONITOR->vecPosition.y - PMONITOR->vecReservedTopLeft.y) - stackStart;
 	} else if (orientation == NSTACK_ORIENTATION_HCENTER) {
 		if (i >= numStacks-1) {
 			scaledSize = monMax - stackStart;
 		} else if (i == numStacks-2) {
-			scaledSize = PMASTERNODE->position.x - stackStart;
+			scaledSize = (PMASTERNODE->position.x - PMONITOR->vecPosition.x - PMONITOR->vecReservedTopLeft.x) - stackStart;
 		}
 	} else if (orientation == NSTACK_ORIENTATION_VCENTER) {
 		if (i >= numStacks-1) {
 			scaledSize = monMax - stackStart;
 		} else if (i == numStacks-2) {
-			scaledSize = PMASTERNODE->position.y - stackStart;
+			scaledSize = (PMASTERNODE->position.y - PMONITOR->vecPosition.y - PMONITOR->vecReservedTopLeft.y) - stackStart;
 		}
 
 	}	
@@ -454,12 +454,10 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
 	    Vector2D stackPos = stackCoords[stackNum]; 
 	    if (orientation % 2 == 0) {
 		    nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(stackPos.x, nodeNextCoord[stackNum]);
-		    printf("STACKPOS X %f\n", stackPos.x);
 	    } else {
 		    nd.position = PMONITOR->vecReservedTopLeft + PMONITOR->vecPosition + Vector2D(nodeNextCoord[stackNum], stackPos.x);
 	    }
 
-	    printf("POSITION %f %f\n", nd.position.x, nd.position.y);
 	    int nodeDiv = slavesTotal/numStacks;
 	    if (slavesTotal%numStacks && stackNum < slavesTotal%numStacks) nodeDiv++;
 	    float NODESIZE = slavesLeft > numStacks ? (stackNodeSizeLeft/nodeDiv) * nd.percSize : nodeSpaceLeft[stackNum];
