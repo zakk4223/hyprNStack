@@ -84,6 +84,7 @@ void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 	    if (nd.workspaceID == ws) {
 		    nd.percSize = 1.0f;
 		    nd.percMaster = *MFACT; 
+		    nd.masterAdjusted = false;
 	    }
     }
 
