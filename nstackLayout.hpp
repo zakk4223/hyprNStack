@@ -9,12 +9,10 @@
 #include <deque>
 #include <any>
 
-
 enum eFullscreenMode : uint8_t;
 
 //orientation determines which side of the screen the master area resides
-enum eColOrientation : uint8_t
-{
+enum eColOrientation : uint8_t {
     NSTACK_ORIENTATION_LEFT = 0,
     NSTACK_ORIENTATION_TOP,
     NSTACK_ORIENTATION_RIGHT,
@@ -23,12 +21,11 @@ enum eColOrientation : uint8_t
     NSTACK_ORIENTATION_VCENTER,
 };
 
-
 struct SNstackNodeData {
-    bool     isMaster   = false;
+    bool     isMaster       = false;
     bool     masterAdjusted = false;
-    float    percMaster = 0.5f;
-    int	     stackNum = 0; 
+    float    percMaster     = 0.5f;
+    int      stackNum       = 0;
 
     CWindow* pWindow = nullptr;
 
@@ -45,14 +42,14 @@ struct SNstackNodeData {
 };
 
 struct SNstackWorkspaceData {
-    int          workspaceID = -1;
+    int                workspaceID = -1;
     std::vector<float> stackPercs;
     std::vector<int>   stackNodeCount;
-    int				    m_iStackCount = 2;
+    int                m_iStackCount = 2;
 
-    eColOrientation orientation = NSTACK_ORIENTATION_LEFT;
+    eColOrientation    orientation = NSTACK_ORIENTATION_LEFT;
 
-    bool         operator==(const SNstackWorkspaceData& rhs) const {
+    bool               operator==(const SNstackWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
     }
 };
@@ -84,7 +81,7 @@ class CHyprNstackLayout : public IHyprLayout {
 
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SNstackNodeData*);
-    void				resetNodeSplits(const int&);
+    void                              resetNodeSplits(const int&);
     SNstackNodeData*                  getNodeFromWindow(CWindow*);
     SNstackNodeData*                  getMasterNodeOnWorkspace(const int&);
     SNstackWorkspaceData*             getMasterWorkspaceData(const int&);
