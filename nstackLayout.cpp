@@ -597,9 +597,6 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* p
     // get monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) < 2)
-        return;
-
     m_bForceWarps = true;
 
     const auto PMASTERNODE = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);

@@ -48,4 +48,3 @@ Once you've prepared the Hyprland sources, you can do HYPRLAND_HEADERS=/path/to/
 # TODO
 * Improve mouse resizing of stacks
 * Improve drag and drop rearranging of windows in and between stacks
-* Allow resizing of a single centered master window
