@@ -99,7 +99,22 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    const auto         PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
+    auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
+                      getNodeFromWindow(g_pCompositor->m_pLastWindow) :
+                      getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+
+    auto NODEPOS = *PNEWTOP ? m_lMasterNodesData.begin() : m_lMasterNodesData.end();
+    if (OPENINGON && OPENINGON != getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID)) {
+      const auto OPENINGPOS = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OPENINGON);
+      if (OPENINGPOS != m_lMasterNodesData.end()) {
+        NODEPOS = OPENINGPOS;
+      }
+
+
+    }
+
+    const auto         PNODE = &(*m_lMasterNodesData.emplace(NODEPOS));
+
 
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
     PNODE->pWindow     = pWindow;
@@ -110,9 +125,6 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
     float              lastSplitPercent   = 0.5f;
     bool               lastMasterAdjusted = false;
 
-    auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
-                      getNodeFromWindow(g_pCompositor->m_pLastWindow) :
-                      getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
     if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && OPENINGON != PNODE && !g_pKeybindManager->m_bGroupsLocked) {
         m_lMasterNodesData.remove(*PNODE);
@@ -124,7 +136,12 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
         return;
     }
 
-    if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1) {
+    bool newWindowIsMaster = false;
+    if (OPENINGON && OPENINGON->isMaster) 
+      newWindowIsMaster = true;
+    if (!OPENINGON && (*PNEWISMASTER || WINDOWSONWORKSPACE == 1))
+      newWindowIsMaster = true;
+    if (newWindowIsMaster) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
                 nd.isMaster        = false;

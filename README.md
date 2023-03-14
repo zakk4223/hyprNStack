@@ -59,5 +59,5 @@ Once you've done that, follow these steps.
 
 # TODO
 - [ ] Improve mouse resizing of stacks
-- [ ] Improve drag and drop rearranging of windows in and between stacks
+- [X] Improve drag and drop rearranging of windows in and between stacks
 - [X] Allow resizing of single master window
