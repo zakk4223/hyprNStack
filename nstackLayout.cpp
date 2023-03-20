@@ -276,15 +276,22 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
 
     static auto* const MFACT          = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:mfact")->floatValue;
     const auto         PWORKSPACEDATA = getMasterWorkspaceData(ws);
-    auto const         NUMSTACKS      = PWORKSPACEDATA->m_iStackCount;
+    auto         NUMSTACKS      = PWORKSPACEDATA->m_iStackCount;
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
 
     const auto         PMASTERNODE = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
 
+    eColOrientation    orientation        = PWORKSPACEDATA->orientation;
+
     if (!PMASTERNODE)
         return;
 
+
+    if (NUMSTACKS < 3 && orientation > NSTACK_ORIENTATION_BOTTOM ) {
+      NUMSTACKS = 3;
+    }
+    
     if (!PMASTERNODE->masterAdjusted) {
         if (getNodesOnWorkspace(PWORKSPACE->m_iID) < NUMSTACKS) {
             PMASTERNODE->percMaster = *MFACT ? *MFACT : 1.0f / getNodesOnWorkspace(PWORKSPACE->m_iID);
@@ -292,7 +299,6 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
             PMASTERNODE->percMaster = *MFACT ? *MFACT : 1.0f / (NUMSTACKS);
         }
     }
-    eColOrientation    orientation        = PWORKSPACEDATA->orientation;
     bool               centerMasterWindow = false;
     static auto* const ALWAYSCENTER       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->intValue;
     if (*ALWAYSCENTER == 1)
