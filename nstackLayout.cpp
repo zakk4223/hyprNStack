@@ -369,8 +369,6 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
 
     } 
 
-        printf("MCONTAINERSIZE %f %f\n", MCONTAINERSIZE.x, MCONTAINERSIZE.y);
-        printf("MCONTAINERPOS %f %f\n", MCONTAINERPOS.x, MCONTAINERPOS.y);
     if (MCONTAINERSIZE != Vector2D(0,0)) {
         float       nodeSpaceLeft = orientation % 2 == 0 ? MCONTAINERSIZE.y : MCONTAINERSIZE.x; 
         int         nodesLeft     = MASTERS;
@@ -878,7 +876,7 @@ void CHyprNstackLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exac
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
-CWindow* CHyprMasterLayout::getNextWindow(CWindow* pWindow, bool next) {
+CWindow* CHyprNstackLayout::getNextWindow(CWindow* pWindow, bool next) {
     if (!isWindowTiled(pWindow))
         return nullptr;
 
