@@ -43,19 +43,19 @@ Two new-ish orientations
  
 
 # Installing
-Hyprland plugins basically have to be user-compiled and loaded. You probably need to compile and install hyprland yourself (or install from something like the AUR on Arch).
+Hyprland plugins basically have to be user-compiled and loaded. You probably need to compile and install hyprland yourself (if not using a package that exports the headers, e.g. the one on Arch's official repos).
  
-Once you've done that, follow these steps.
+If your package does not export headers, see the [this part of the hyprland wiki](https://wiki.hyprland.org/Plugins/Using-Plugins/#preparing-hyprland-sources-for-plugins)
 
-1. Export the environment variable HYPRLAND_HEADERS and point it at the root of the Hyprland source
-   - `export HYPRLAND_HEADERS="$HOME/proj/Hyprland"`
-2. Build hyprNStack
+Then:
+
+1. Build hyprNStack
    - `make`
-3. Copy the resulting nstackLayoutPlugin.so to some place
+2. Copy the resulting nstackLayoutPlugin.so to some place
    - `cp nstackLayoutPlugin.so ~/.config/hypr/plugins`
-4. Modify your hyprland.conf to load the plugin
+3. Modify your hyprland.conf to load the plugin
    - `exec-once=hyprctl plugin load $HOME/.config/hypr/plugins/nstackLayoutPlugin.so`
-5. Set your hyprland layout to `nstack`. 
+4. Set your hyprland layout to `nstack`. 
 
 # TODO
 - [ ] Improve mouse resizing of stacks

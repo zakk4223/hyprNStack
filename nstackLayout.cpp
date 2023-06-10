@@ -1,5 +1,5 @@
 #include "nstackLayout.hpp"
-#include <src/Compositor.hpp>
+#include <hyprland/src/Compositor.hpp>
 
 SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& nd : m_lMasterNodesData) {
