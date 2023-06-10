@@ -1,6 +1,6 @@
 #define WLR_USE_UNSTABLE
 
-#include <src/config/ConfigManager.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
 #include "globals.hpp"
 
 #include "nstackLayout.hpp"

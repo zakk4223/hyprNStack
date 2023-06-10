@@ -3,7 +3,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "globals.hpp"
-#include <src/layout/IHyprLayout.hpp>
+#include <hyprland/src/layout/IHyprLayout.hpp>
 #include <vector>
 #include <list>
 #include <deque>
