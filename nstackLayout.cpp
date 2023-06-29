@@ -1,5 +1,5 @@
 #include "nstackLayout.hpp"
-#include <src/Compositor.hpp>
+#include <hyprland/src/Compositor.hpp>
 
 SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& nd : m_lMasterNodesData) {
@@ -99,21 +99,11 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
+    const auto PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
+
     auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
-
-    auto NODEPOS = *PNEWTOP ? m_lMasterNodesData.begin() : m_lMasterNodesData.end();
-    if (OPENINGON && OPENINGON != getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID)) {
-      const auto OPENINGPOS = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OPENINGON);
-      if (OPENINGPOS != m_lMasterNodesData.end()) {
-        NODEPOS = OPENINGPOS;
-      }
-
-
-    }
-
-    const auto         PNODE = &(*m_lMasterNodesData.emplace(NODEPOS));
 
 
     PNODE->workspaceID = pWindow->m_iWorkspaceID;
@@ -126,7 +116,9 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
     bool               lastMasterAdjusted = false;
 
 
-    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && OPENINGON != PNODE && !g_pKeybindManager->m_bGroupsLocked) {
+    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && // target is an unlocked group
+        (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked)                                    // source is not group or is an unlocked group
+        && OPENINGON != PNODE && !g_pKeybindManager->m_bGroupsLocked) {
         m_lMasterNodesData.remove(*PNODE);
 
         OPENINGON->pWindow->insertWindowToGroup(pWindow);
@@ -137,9 +129,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
     }
 
     bool newWindowIsMaster = false;
-    if (OPENINGON && OPENINGON->isMaster) 
-      newWindowIsMaster = true;
-    if (!OPENINGON && (*PNEWISMASTER || WINDOWSONWORKSPACE == 1))
+    if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster))
       newWindowIsMaster = true;
     if (newWindowIsMaster) {
         for (auto& nd : m_lMasterNodesData) {

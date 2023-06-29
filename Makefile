@@ -3,6 +3,6 @@
 # and that you have ran `make protocols` in the hl dir.
 
 all:
-	g++ -shared -Wall -fPIC --no-gnu-unique main.cpp nstackLayout.cpp -o nstackLayoutPlugin.so -g -I "/usr/include/pixman-1" -I "/usr/include/libdrm" -I "${HYPRLAND_HEADERS}" -std=c++23
+	g++ -shared -Wall -fPIC --no-gnu-unique main.cpp nstackLayout.cpp -o nstackLayoutPlugin.so -g `pkg-config --cflags pixman-1 libdrm hyprland` -std=c++23
 clean:
 	rm ./nstackLayoutPlugin.so
