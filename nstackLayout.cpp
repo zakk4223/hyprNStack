@@ -297,7 +297,7 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     static auto* const ALWAYSCENTER       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->intValue;
     if (*ALWAYSCENTER == 1)
         centerMasterWindow = true;
-    if (!ONLYMASTERS && NODECOUNT-MASTERS < 3) {
+    if (!ONLYMASTERS && NODECOUNT-MASTERS < 2) {
         if (orientation == NSTACK_ORIENTATION_HCENTER) {
             orientation = NSTACK_ORIENTATION_LEFT;
         } else if (orientation == NSTACK_ORIENTATION_VCENTER) {
