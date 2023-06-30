@@ -101,13 +101,13 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
 
     const auto PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
 
+    PNODE->workspaceID = pWindow->m_iWorkspaceID;
+    PNODE->pWindow     = pWindow;
+
     auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
-
-    PNODE->workspaceID = pWindow->m_iWorkspaceID;
-    PNODE->pWindow     = pWindow;
 
     static auto* const PNEWISMASTER = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_is_master")->intValue;
 
