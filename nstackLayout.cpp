@@ -48,6 +48,8 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_BOTTOM;
     } else if (*orientation == "left") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_LEFT;
+    } else if (*orientation == "orientationvcenter") {
+        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
     } else {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_HCENTER;
     }
