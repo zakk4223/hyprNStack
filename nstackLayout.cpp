@@ -609,7 +609,7 @@ bool CHyprNstackLayout::isWindowTiled(CWindow* pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
-void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, CWindow* pWindow) {
+void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, CWindow* pWindow) {
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW))
