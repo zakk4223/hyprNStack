@@ -1,5 +1,7 @@
 #include "nstackLayout.hpp"
 #include <hyprland/src/Compositor.hpp>
+#include <format>
+
 
 SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(CWindow* pWindow) {
     for (auto& nd : m_lMasterNodesData) {
@@ -524,7 +526,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     }
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node %x (workspace ID: %i)!!", pNode, pNode->workspaceID);
+        Debug::log(ERR, "Orphaned Node {} (workspace ID: {})!!", static_cast<void *>(pNode), pNode->workspaceID);
         return;
     }
 
@@ -541,7 +543,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     const auto PWINDOW = pNode->pWindow;
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node %x holding invalid window %x!!", pNode, PWINDOW);
+        Debug::log(ERR, "Node {} holding invalid window {}!!", static_cast<void *>(pNode), static_cast<void *>(PWINDOW));
         return;
     }
 
@@ -1210,6 +1212,16 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     return 0;
 }
+
+void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+    if (!isDirection(dir))
+        return;
+
+    const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
+
+    switchWindows(pWindow, PWINDOW2);
+}
+
 
 void CHyprNstackLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
     const auto PNODE = getNodeFromWindow(from);
