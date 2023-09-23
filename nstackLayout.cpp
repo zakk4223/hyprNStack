@@ -1154,39 +1154,11 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         recalculateMonitor(header.pWindow->m_iMonitorID);
 
     } else if (command == "orientationnext") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == NSTACK_ORIENTATION_VCENTER) {
-            PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_LEFT;
-        } else {
-            PWORKSPACEDATA->orientation = (eColOrientation)(PWORKSPACEDATA->orientation + 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, 1);
     } else if (command == "orientationprev") {
-        const auto PWINDOW = header.pWindow;
-
-        if (!PWINDOW)
-            return 0;
-
-        prepareLoseFocus(PWINDOW);
-
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-
-        if (PWORKSPACEDATA->orientation == NSTACK_ORIENTATION_LEFT) {
-            PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
-        } else {
-            PWORKSPACEDATA->orientation = (eColOrientation)(PWORKSPACEDATA->orientation - 1);
-        }
-
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        runOrientationCycle(header, nullptr, -1);
+    } else if (command == "orientationcycle") {
+        runOrientationCycle(header, &vars, 1);
     } else if (command == "resetsplits") {
         const auto PWINDOW = header.pWindow;
         if (!PWINDOW)
@@ -1212,6 +1184,65 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     }
 
     return 0;
+}
+
+// If vars is null, we use the default list
+void CHyprNstackLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int direction) {
+    std::vector<eColOrientation> cycle;
+    if (vars != nullptr)
+        buildOrientationCycleVectorFromVars(cycle, *vars);
+
+    if (cycle.size() == 0)
+        buildOrientationCycleVectorFromEOperation(cycle);
+
+    const auto PWINDOW = header.pWindow;
+
+    if (!PWINDOW)
+        return;
+
+    prepareLoseFocus(PWINDOW);
+
+    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+
+    int        nextOrPrev = 0;
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
+            nextOrPrev = i + direction;
+            break;
+        }
+    }
+
+    if (nextOrPrev >= (int)cycle.size())
+        nextOrPrev = nextOrPrev % (int)cycle.size();
+    else if (nextOrPrev < 0)
+        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
+
+    PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
+    recalculateMonitor(header.pWindow->m_iMonitorID);
+}
+
+void CHyprNstackLayout::buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle) {
+    for (int i = 0; i <= NSTACK_ORIENTATION_VCENTER; ++i) {
+        cycle.push_back((eColOrientation)i);
+    }
+}
+
+void CHyprNstackLayout::buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, CVarList& vars) {
+    for (size_t i = 1; i < vars.size(); ++i) {
+        if (vars[i] == "top") {
+            cycle.push_back(NSTACK_ORIENTATION_TOP);
+        } else if (vars[i] == "right") {
+            cycle.push_back(NSTACK_ORIENTATION_RIGHT);
+        } else if (vars[i] == "bottom") {
+            cycle.push_back(NSTACK_ORIENTATION_BOTTOM);
+        } else if (vars[i] == "left") {
+            cycle.push_back(NSTACK_ORIENTATION_LEFT);
+        } else if (vars[i] == "hcenter") {
+            cycle.push_back(NSTACK_ORIENTATION_HCENTER);
+        } else if (vars[i] == "vcenter") {
+            cycle.push_back(NSTACK_ORIENTATION_VCENTER);
+        }
+    }
 }
 
 void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {

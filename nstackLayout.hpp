@@ -4,6 +4,7 @@
 
 #include "globals.hpp"
 #include <hyprland/src/layout/IHyprLayout.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
 #include <vector>
 #include <list>
 #include <deque>
@@ -80,6 +81,9 @@ class CHyprNstackLayout : public IHyprLayout {
 
     bool                              m_bForceWarps = false;
 
+    void                              buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, CVarList& vars);
+    void                              buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle);
+    void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SNstackNodeData*);
     void                              resetNodeSplits(const int&);
