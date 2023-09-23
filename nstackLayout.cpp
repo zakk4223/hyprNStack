@@ -1,5 +1,6 @@
 #include "nstackLayout.hpp"
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <format>
 
 
@@ -95,7 +96,7 @@ void CHyprNstackLayout::resetNodeSplits(const int& ws) {
     recalculateMonitor(WORKSPACE->m_iMonitorID);
 }
 
-void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow) {
+void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating)
         return;
 
@@ -801,7 +802,7 @@ void CHyprNstackLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
 
     g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
-    g_pCompositor->moveWindowToTop(pWindow);
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 
     recalculateMonitor(PMONITOR->ID);
 }
