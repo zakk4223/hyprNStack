@@ -1,0 +1,10 @@
+[hyprNStack]
+description = "N-Stack layout"
+version = "0.0.1"
+author = "zakk4223"
+
+[hyprNStack.build]
+output = "./nstackLayoutPlugin.so"
+steps = [
+"make"
+]
