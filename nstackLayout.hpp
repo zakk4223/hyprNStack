@@ -10,7 +10,7 @@
 #include <deque>
 #include <any>
 
-enum eFullscreenMode : uint8_t;
+enum eFullscreenMode : int8_t;
 
 //orientation determines which side of the screen the master area resides
 enum eColOrientation : uint8_t {
@@ -36,6 +36,7 @@ struct SNstackNodeData {
     float    percSize = 1.f; // size multiplier for resizing children
 
     int      workspaceID = -1;
+		bool		 ignoreFullscreenChecks = false;
 
     bool     operator==(const SNstackNodeData& rhs) const {
         return pWindow == rhs.pWindow;

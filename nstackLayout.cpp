@@ -113,6 +113,9 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
                       getNodeFromWindow(g_pCompositor->m_pLastWindow) :
                       getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
 
+		const auto				MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+		
+
 
     static auto* const PNEWISMASTER = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_is_master")->intValue;
 
@@ -121,17 +124,38 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     bool               lastMasterAdjusted = false;
 
 
-    if (OPENINGON && OPENINGON->pWindow->m_sGroupData.pNextWindow && !OPENINGON->pWindow->getGroupHead()->m_sGroupData.locked && // target is an unlocked group
-        (!pWindow->m_sGroupData.pNextWindow || !pWindow->getGroupHead()->m_sGroupData.locked)                                    // source is not group or is an unlocked group
-        && OPENINGON != PNODE && !g_pKeybindManager->m_bGroupsLocked) {
+		if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
+			for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
+				if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+					continue;
+				if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+					if(!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
+						return;
+					break;
+				}
+			}
+		}
+
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow // target is group
+        && pWindow->canBeGroupedInto(OPENINGON->pWindow)) {
+
+        if (!pWindow->m_sGroupData.pNextWindow)
+            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
         m_lMasterNodesData.remove(*PNODE);
 
-        OPENINGON->pWindow->insertWindowToGroup(pWindow);
+        static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+        (*USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
 
         return;
     }
+
+    pWindow->applyGroupRules();
 
     bool newWindowIsMaster = false;
     if (*PNEWISMASTER || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster))
@@ -170,13 +194,6 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
             g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
             return;
         }
-    }
-
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
     }
 
     // recalc
@@ -537,66 +554,98 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     const bool DISPLAYTOP    = STICKS(pNode->position.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM = STICKS(pNode->position.y + pNode->size.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
-    const auto PBORDERSIZE = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
-    const auto PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
-    const auto PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
-
     const auto PWINDOW = pNode->pWindow;
+		const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+
+		if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
+			return;
+
+		PWINDOW->updateSpecialRenderData();
+		
+
+		
+
+
+    const auto* PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    const auto* PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+    static auto* const PNOGAPSWHENONLY = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->intValue;
+		static auto* const PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+
+		auto gapsIn = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+		auto gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
+
+
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid window {}!!", static_cast<void *>(pNode), static_cast<void *>(PWINDOW));
         return;
     }
 
-    static auto* const PNOGAPSWHENONLY = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->intValue;
 
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    auto calcPos  = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-    auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+    //auto calcPos  = PWINDOW->m_vPosition + Vector2D(*PBORDERSIZE, *PBORDERSIZE);
+    //auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
     if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
         (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 ||
          (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
-        PWINDOW->m_vRealPosition = calcPos - Vector2D(*PBORDERSIZE, *PBORDERSIZE);
-        PWINDOW->m_vRealSize     = calcSize + Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
+
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
+        PWINDOW->m_sSpecialRenderData.rounding = false;
+        PWINDOW->m_sSpecialRenderData.shadow   = false;
+
+        const auto RESERVED = PWINDOW->getFullWindowReservedArea();
+
+        const int  BORDERSIZE = PWINDOW->getRealBorderSize();
+
+        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE) + RESERVED.topLeft;
+        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE) - (RESERVED.topLeft + RESERVED.bottomRight);
 
         PWINDOW->updateWindowDecos();
 
-        PWINDOW->m_sSpecialRenderData.rounding = false;
-        PWINDOW->m_sSpecialRenderData.border   = false;
-        PWINDOW->m_sSpecialRenderData.decorate = false;
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
 
         return;
     }
+    const int  BORDERSIZE = PWINDOW->getRealBorderSize();
 
-    PWINDOW->m_sSpecialRenderData.rounding = true;
-    PWINDOW->m_sSpecialRenderData.border   = true;
-    PWINDOW->m_sSpecialRenderData.decorate = true;
+    auto       calcPos  = PWINDOW->m_vPosition + Vector2D(BORDERSIZE, BORDERSIZE);
+    auto       calcSize = PWINDOW->m_vSize - Vector2D(2 * BORDERSIZE, 2 * BORDERSIZE);
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? *PGAPSOUT : *PGAPSIN, DISPLAYTOP ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? *PGAPSOUT : *PGAPSIN, DISPLAYBOTTOM ? *PGAPSOUT : *PGAPSIN);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut : gapsIn, DISPLAYBOTTOM ? gapsOut : gapsIn);
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
 
+    const auto RESERVED = PWINDOW->getFullWindowReservedArea();
+    calcPos             = calcPos + RESERVED.topLeft;
+    calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
+
     if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
         static auto* const PSCALEFACTOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor")->floatValue;
 
-        PWINDOW->m_vRealPosition = calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f;
-        PWINDOW->m_vRealSize     = calcSize * *PSCALEFACTOR;
+        CBox               wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
+        wb.round(); // avoid rounding mess
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize * *PSCALEFACTOR);
+        PWINDOW->m_vRealPosition = wb.pos();
+        PWINDOW->m_vRealSize     = wb.size();
+
+        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     } else {
-        PWINDOW->m_vRealSize     = calcSize;
-        PWINDOW->m_vRealPosition = calcPos;
+				CBox wb = {calcPos, calcSize};
+				wb.round();
+        PWINDOW->m_vRealSize     = wb.size(); 
+        PWINDOW->m_vRealPosition = wb.pos(); 
 
         g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
     }
 
-    if (m_bForceWarps) {
+    if (m_bForceWarps && !*PANIMATE) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
         PWINDOW->m_vRealPosition.warp();
@@ -606,6 +655,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     }
 
     PWINDOW->updateWindowDecos();
+
 }
 
 bool CHyprNstackLayout::isWindowTiled(CWindow* pWindow) {
@@ -678,8 +728,10 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             default: UNREACHABLE();
         }
 
+				const auto workspaceIdForResizing = PMONITOR->specialWorkspaceID == 0 ? PMONITOR->activeWorkspace : PMONITOR->specialWorkspaceID;
+
         for (auto& n : m_lMasterNodesData) {
-            if (n.isMaster && n.workspaceID == PMONITOR->activeWorkspace) {
+            if (n.isMaster && n.workspaceID == workspaceIdForResizing) {
                 n.percMaster     = std::clamp(n.percMaster + delta, 0.05, 0.95);
                 n.masterAdjusted = true;
             }
@@ -793,6 +845,7 @@ void CHyprNstackLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             fakeNode.workspaceID = pWindow->m_iWorkspaceID;
             pWindow->m_vPosition = fakeNode.position;
             pWindow->m_vSize     = fakeNode.size;
+						fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);
         }
@@ -924,7 +977,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return;
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->m_vRealPosition.goalv() + PWINDOWTOCHANGETO->m_vRealSize.goalv() / 2.f);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
     };
 
     CVarList vars(message, 0, ' ');
@@ -1250,8 +1303,16 @@ void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
         return;
 
     const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
-
-    switchWindows(pWindow, PWINDOW2);
+		if (pWindow->m_iWorkspaceID != PWINDOW2->m_iWorkspaceID) {
+ 		// if different monitors, send to monitor
+		onWindowRemovedTiling(pWindow);
+		pWindow->moveToWorkspace(PWINDOW2->m_iWorkspaceID);
+		pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
+		onWindowCreatedTiling(pWindow);
+    } else {
+        // if same monitor, switch windows
+        switchWindows(pWindow, PWINDOW2);
+		}
 }
 
 
