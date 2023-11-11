@@ -128,7 +128,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 			for (auto& wd : OPENINGON->pWindow->m_dWindowDecorations) {
 				if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
 					continue;
-				if (wd->getWindowDecorationRegion().containsPoint(MOUSECOORDS)) {
+				if (g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(MOUSECOORDS)) {
 					if(!wd->onEndWindowDragOnDeco(pWindow, MOUSECOORDS))
 						return;
 					break;
