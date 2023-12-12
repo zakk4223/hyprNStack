@@ -1,13 +1,9 @@
-#define WLR_USE_UNSTABLE
-
+#include "workspacerule.hpp"
 #include <hyprland/src/config/ConfigManager.hpp>
 #include "globals.hpp"
-
 #include "nstackLayout.hpp"
-
 #include <unistd.h>
 #include <thread>
-
 // Methods
 inline std::unique_ptr<CHyprNstackLayout> g_pNstackLayout;
 
@@ -29,7 +25,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:stacks", SConfigValue{.intValue = 2});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master", SConfigValue{.intValue = 0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", SConfigValue{.floatValue = 0.5f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", SConfigValue{.floatValue = 0.5f});
     g_pNstackLayout = std::make_unique<CHyprNstackLayout>();
+
 
     HyprlandAPI::addLayout(PHANDLE, "nstack", g_pNstackLayout.get());
 

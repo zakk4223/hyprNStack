@@ -1,7 +1,5 @@
 #pragma once
 
-#define WLR_USE_UNSTABLE
-
 #include "globals.hpp"
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
@@ -48,7 +46,14 @@ struct SNstackWorkspaceData {
     std::vector<float> stackPercs;
     std::vector<int>   stackNodeCount;
     int                m_iStackCount = 2;
-
+		bool							 new_on_top = false;
+		bool							 new_is_master = true;
+	  bool               center_single_master = false;
+		bool							 inherit_fullscreen = true;
+		int						 		 no_gaps_when_only = 0;
+		float							 master_factor = 0.5f;
+		float							 single_master_factor = 0.5f;
+		float							 special_scale_factor = 0.8f;
     eColOrientation    orientation = NSTACK_ORIENTATION_LEFT;
 
     bool               operator==(const SNstackWorkspaceData& rhs) const {
