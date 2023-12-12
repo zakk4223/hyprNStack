@@ -1,4 +1,3 @@
-#include "workspacerule.hpp"
 #include <hyprland/src/config/ConfigManager.hpp>
 #include "globals.hpp"
 #include "nstackLayout.hpp"
