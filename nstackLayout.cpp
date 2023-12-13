@@ -39,7 +39,9 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
             return &n;
     }
 		const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-		const auto wslayoutopts = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE).layoutopts;
+		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+		Debug::log(LOG, "GOT RULE {}", wsrule.workspaceString);
+		const auto wslayoutopts = wsrule.layoutopts;
 
 		const auto orientation = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:orientation")->strValue;
 		auto wsorientation = *orientation;
