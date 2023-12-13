@@ -410,7 +410,7 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     if (ONLYMASTERS) {
       if (centerMasterWindow) {
 
-						Debug::log(LOG, "CENTER MASTER, ADJ {}", PMASTERNODE->masterAdjusted, PWORKSPACEDATA->single_master_factor);
+						Debug::log(LOG, "CENTER MASTER, ADJ {} ({})", PMASTERNODE->masterAdjusted, PWORKSPACEDATA->single_master_factor);
             if (!PMASTERNODE->masterAdjusted) 
                 PMASTERNODE->percMaster = PWORKSPACEDATA->single_master_factor ? PWORKSPACEDATA->single_master_factor : 0.5f;
 
