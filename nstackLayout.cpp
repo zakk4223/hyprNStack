@@ -66,8 +66,9 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 
 		const auto NUMSTACKS = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:stacks")->intValue;
 		auto wsstacks = *NUMSTACKS;
+		
 		try {
-			std::string stackstr = std::any_cast<std::string>(wslayoutopts.at("nstack-stacks"));
+			std::string stackstr = wslayoutopts.at("nstack-stacks");
 			wsstacks = std::stol(stackstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     if (wsstacks) {
@@ -77,7 +78,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto MFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:mfact")->floatValue;
 		auto wsmfact = *MFACT;
 		try {
-			std::string mfactstr = std::any_cast<std::string>(wslayoutopts.at("nstack-mfact"));
+			std::string mfactstr = wslayoutopts.at("nstack-mfact");
 			wsmfact = std::stof(mfactstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     if (wsmfact) {
@@ -87,7 +88,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto SMFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:single_mfact")->floatValue;
 		auto wssmfact = *SMFACT;
 		try {
-			std::string smfactstr = std::any_cast<std::string>(wslayoutopts.at("nstack-single_mfact"));
+			std::string smfactstr = wslayoutopts.at("nstack-single_mfact");
 			wssmfact = std::stof(smfactstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->single_master_factor = wssmfact; 
@@ -95,7 +96,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto SSFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:special_scale_factor")->floatValue;
 		auto wsssfact = *SSFACT;
 		try {
-			std::string ssfactstr = std::any_cast<std::string>(wslayoutopts.at("nstack-special_scale_factor"));
+			std::string ssfactstr = wslayoutopts.at("nstack-special_scale_factor");
 			wsssfact = std::stof(ssfactstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->special_scale_factor = wsssfact; 
@@ -103,7 +104,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto NEWTOP = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:new_on_top")->intValue;
 		auto wsnewtop = *NEWTOP;
 		try {
-			std::string newtopstr = std::any_cast<std::string>(wslayoutopts.at("nstack-new_on_top"));
+			std::string newtopstr = wslayoutopts.at("nstack-new_on_top");
 			wsnewtop = std::stoi(newtopstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
 		PWORKSPACEDATA->new_on_top = wsnewtop;
@@ -111,7 +112,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto NEWMASTER = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:new_is_master")->intValue;
 		auto wsnewmaster = *NEWMASTER;
 		try {
-			std::string newmasterstr = std::any_cast<std::string>(wslayoutopts.at("nstack-new_is_master"));
+			std::string newmasterstr = wslayoutopts.at("nstack-new_is_master");
 			wsnewmaster = std::stoi(newmasterstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->new_is_master = wsnewmaster; 
@@ -119,7 +120,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto NGWO = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:no_gaps_when_only")->intValue;
 		auto wsngwo = *NGWO;
 		try {
-			std::string ngwostr = std::any_cast<std::string>(wslayoutopts.at("nstack-no_gaps_when_only"));
+			std::string ngwostr = wslayoutopts.at("nstack-no_gaps_when_only");
 			wsngwo = std::stoi(ngwostr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->no_gaps_when_only = wsngwo; 
@@ -127,7 +128,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto INHERITFS = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:inherit_fullscreen")->intValue;
 		auto wsinheritfs = *INHERITFS;
 		try {
-			std::string inheritfsstr = std::any_cast<std::string>(wslayoutopts.at("nstack-inherit_fullscreen"));
+			std::string inheritfsstr = wslayoutopts.at("nstack-inherit_fullscreen");
 			wsinheritfs = std::stoi(inheritfsstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->inherit_fullscreen = wsinheritfs; 
@@ -135,7 +136,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto CENTERSM = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:center_single_master")->intValue;
 		auto wscentersm = *CENTERSM;
 		try {
-			std::string centersmstr = std::any_cast<std::string>(wslayoutopts.at("nstack-center_single_master"));
+			std::string centersmstr = wslayoutopts.at("nstack-center_single_master");
 			wscentersm = std::stoi(centersmstr);
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->center_single_master = wscentersm;
@@ -409,8 +410,9 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     if (ONLYMASTERS) {
       if (centerMasterWindow) {
 
-            if (!PMASTERNODE->masterAdjusted)
-                PMASTERNODE->percMaster = PWORKSPACEDATA->master_factor ? PWORKSPACEDATA->master_factor : 0.5f;
+						Debug::log(LOG, "CENTER MASTER, ADJ {}", PMASTERNODE->masterAdjusted);
+            if (!PMASTERNODE->masterAdjusted) 
+                PMASTERNODE->percMaster = PWORKSPACEDATA->single_master_factor ? PWORKSPACEDATA->single_master_factor : 0.5f;
 
             if (orientation == NSTACK_ORIENTATION_TOP || orientation == NSTACK_ORIENTATION_BOTTOM) {
                 const float HEIGHT        = (PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y) * PMASTERNODE->percMaster;
