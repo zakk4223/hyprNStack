@@ -1,0 +1,11 @@
+[repository]
+name = "hyprNStack"
+authors = ["Zakk"]
+
+[hyprNStack]
+description = "N-Stack layout"
+authors = ["Zakk"]
+output = "nstackLayoutPlugin.so"
+build = [
+	"make all"
+]

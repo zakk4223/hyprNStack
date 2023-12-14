@@ -20,6 +20,7 @@ plugin {
       stacks=2
       center_single_master=0
       mfact=0.5
+      single_mfact=0.5
     }
   }
 }
@@ -28,7 +29,12 @@ plugin {
 ### Configuration variable differences in comparison to Master Layout
 *  `stacks` The number of *total* stacks, including the master.
 *  `mfact` If this is set to 0 the master is the same size as the stacks. So if there is one master and 2 stacks they are all 1/3rd of the screen width(or height). Master and 3 stacks they are all 1/4th etc.
+*  `single_mfact` The size of a single centered master window, when center_single_master is set.  
 * `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
+
+### Workspace layout options
+All configuration variables are also usable as workspace rule layout options. Just prefix the setting name with 'nstack-'
+`workspace=2,layoutopt:nstack-stacks:2,layoutopt:nstack-single_mfact:0.85`
 
 # Dispatchers
 
@@ -43,6 +49,11 @@ Two new-ish orientations
  
 
 # Installing
+
+## Hyprpm, Hyprland's official plugin manager (recommended)
+1. Run `hyprpm add https://github.com/zakk4223/hyprNStack` and wait for hyprpm to build the plugin.
+2. Run `hyprpm enable hyprNStack`
+3. Set your hyprland layout to `nstack`.
 
 ## Manual
 Hyprland plugins basically have to be user-compiled and loaded. You probably need to compile and install hyprland yourself (if not using a package that exports the headers, e.g. the one on Arch's official repos).
@@ -61,6 +72,7 @@ Then:
 
 ## Plugin-Manager Hyprload
 Installing via [hyprload](https://github.com/Duckonaut/hyprload) is supported.
+
 
 1. Add the following to your `hyprload.toml` once `hyprload` [is running](https://github.com/Duckonaut/hyprload#installing):
 ``` toml
