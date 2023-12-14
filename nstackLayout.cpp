@@ -544,7 +544,7 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
             coordAdjust = orientation % 2 == 1 ? PMASTERNODE->position.y + PMASTERNODE->size.y - PMONITOR->vecPosition.y - PMONITOR->vecReservedTopLeft.y :
                                                  PMASTERNODE->position.x + PMASTERNODE->size.x - PMONITOR->vecPosition.x - PMONITOR->vecReservedTopLeft.x;
         }
-        float monMax     = orientation % 2 == 1 ? PMONITOR->vecSize.y : PMONITOR->vecSize.x;
+        float monMax     = orientation % 2 == 1 ? PMONITOR->vecSize.y - PMONITOR->vecReservedTopLeft.y - PMONITOR->vecReservedBottomRight.y : PMONITOR->vecSize.x - PMONITOR->vecReservedTopLeft.x - PMONITOR->vecReservedBottomRight.x;
         float stackStart = 0.0f;
         if (i == numStackBefore && numStackAfter) {
             stackStart = coordAdjust;
