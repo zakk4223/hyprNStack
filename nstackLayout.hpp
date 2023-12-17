@@ -80,10 +80,11 @@ class CHyprNstackLayout : public IHyprLayout {
 
     virtual void                     onEnable();
     virtual void                     onDisable();
+		void 														removeWorkspaceData(const int& ws);
 
   private:
     std::list<SNstackNodeData>        m_lMasterNodesData;
-    std::vector<SNstackWorkspaceData> m_lMasterWorkspacesData;
+    std::list<SNstackWorkspaceData> m_lMasterWorkspacesData;
 
     bool                              m_bForceWarps = false;
 

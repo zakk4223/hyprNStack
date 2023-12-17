@@ -33,6 +33,18 @@ int CHyprNstackLayout::getMastersOnWorkspace(const int& ws) {
     return no;
 }
 
+void CHyprNstackLayout::removeWorkspaceData(const int& ws) {
+
+		SNstackWorkspaceData *wsdata = nullptr;
+    for (auto& n : m_lMasterWorkspacesData) {
+        if (n.workspaceID == ws)
+            wsdata = &n;
+    }
+
+		if (wsdata)
+			m_lMasterWorkspacesData.remove(*wsdata);
+}
+
 SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
     for (auto& n : m_lMasterWorkspacesData) {
         if (n.workspaceID == ws)
@@ -160,21 +172,11 @@ SNstackNodeData* CHyprNstackLayout::getMasterNodeOnWorkspace(const int& ws) {
 
 void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 
+		removeWorkspaceData(ws);
     const auto         WORKSPACE     = g_pCompositor->getWorkspaceByID(ws);
-    const auto         WORKSPACEDATA = getMasterWorkspaceData(ws);
-    if (!WORKSPACE || !WORKSPACEDATA)
-        return;
-    for (auto& nd : m_lMasterNodesData) {
-        if (nd.workspaceID == ws) {
-            nd.percSize       = 1.0f;
-            nd.percMaster     = WORKSPACEDATA->master_factor; 
-            nd.masterAdjusted = false;
-        }
-    }
-
-    WORKSPACEDATA->stackPercs.assign(WORKSPACEDATA->stackPercs.size(), 1.0f);
     recalculateMonitor(WORKSPACE->m_iMonitorID);
 }
+
 
 void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating)
