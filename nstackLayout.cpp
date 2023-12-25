@@ -54,7 +54,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
 		const auto wslayoutopts = wsrule.layoutopts;
 
-		const auto orientation = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:orientation")->strValue;
+		static auto* const orientation = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->strValue;
 		auto wsorientation = *orientation;
 		try {
 			wsorientation = std::any_cast<std::string>(wslayoutopts.at("nstack-orientation"));
@@ -77,7 +77,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_HCENTER;
     }
 
-		const auto NUMSTACKS = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:stacks")->intValue;
+		static auto* const NUMSTACKS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->intValue;
 		auto wsstacks = *NUMSTACKS;
 		
 		try {
@@ -88,7 +88,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
         PWORKSPACEDATA->m_iStackCount = wsstacks;
     }
 
-		const auto MFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:mfact")->floatValue;
+		static auto* const MFACT = &HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:mfact")->floatValue;
 		auto wsmfact = *MFACT;
 		try {
 			std::string mfactstr = wslayoutopts.at("nstack-mfact");
@@ -98,7 +98,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
         PWORKSPACEDATA->master_factor = wsmfact; 
     }
 
-		const auto SMFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:single_mfact")->floatValue;
+		static auto* const SMFACT = &HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:single_mfact")->floatValue;
 		auto wssmfact = *SMFACT;
 		try {
 			std::string smfactstr = wslayoutopts.at("nstack-single_mfact");
@@ -106,7 +106,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->single_master_factor = wssmfact; 
 
-		const auto SSFACT = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:special_scale_factor")->floatValue;
+		static auto* const SSFACT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor")->floatValue;
 		auto wsssfact = *SSFACT;
 		try {
 			std::string ssfactstr = wslayoutopts.at("nstack-special_scale_factor");
@@ -114,7 +114,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->special_scale_factor = wsssfact; 
 
-		const auto NEWTOP = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:new_on_top")->intValue;
+		static auto* const NEWTOP = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top")->intValue;
 		auto wsnewtop = *NEWTOP;
 		try {
 			std::string newtopstr = wslayoutopts.at("nstack-new_on_top");
@@ -122,7 +122,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
 		PWORKSPACEDATA->new_on_top = wsnewtop;
 
-		const auto NEWMASTER = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:new_is_master")->intValue;
+		static auto* const NEWMASTER = &HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:new_is_master")->intValue;
 		auto wsnewmaster = *NEWMASTER;
 		try {
 			std::string newmasterstr = wslayoutopts.at("nstack-new_is_master");
@@ -130,7 +130,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->new_is_master = wsnewmaster; 
 
-		const auto NGWO = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:no_gaps_when_only")->intValue;
+		static auto* const NGWO = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->intValue;
 		auto wsngwo = *NGWO;
 		try {
 			std::string ngwostr = wslayoutopts.at("nstack-no_gaps_when_only");
@@ -138,7 +138,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->no_gaps_when_only = wsngwo; 
 
-		const auto INHERITFS = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:inherit_fullscreen")->intValue;
+		static auto* const INHERITFS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen")->intValue;
 		auto wsinheritfs = *INHERITFS;
 		try {
 			std::string inheritfsstr = wslayoutopts.at("nstack-inherit_fullscreen");
@@ -146,7 +146,7 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
     PWORKSPACEDATA->inherit_fullscreen = wsinheritfs; 
 
-		const auto CENTERSM = &g_pConfigManager->getConfigValuePtrSafe("plugin:nstack:layout:center_single_master")->intValue;
+		static auto* const CENTERSM = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->intValue;
 		auto wscentersm = *CENTERSM;
 		try {
 			std::string centersmstr = wslayoutopts.at("nstack-center_single_master");
@@ -648,8 +648,8 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
 		
 
 
-    const auto* PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
-    const auto* PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
+    static auto* const PGAPSIN     = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    static auto* const PGAPSOUT    = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
 		static auto* const PANIMATE = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
 
 		auto gapsIn = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);

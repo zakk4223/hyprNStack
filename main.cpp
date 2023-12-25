@@ -32,14 +32,17 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", SConfigValue{.floatValue = 0.5f});
     g_pNstackLayout = std::make_unique<CHyprNstackLayout>();
 		HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
-			CWorkspace *ws = std::any_cast<CWorkspace *>(data);
+			std::vector<void *> moveData = std::any_cast<std::vector<void *>>(data);
+			CWorkspace *ws = static_cast<CWorkspace *>(moveData.front());
 			deleteWorkspaceData(ws);
 		});
 
+	
 		HyprlandAPI::registerCallbackDynamic(PHANDLE, "destroyWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
 			CWorkspace *ws = std::any_cast<CWorkspace *>(data);
 			deleteWorkspaceData(ws);
 		});
+	
     HyprlandAPI::addLayout(PHANDLE, "nstack", g_pNstackLayout.get());
 
     HyprlandAPI::reloadConfig();
