@@ -391,6 +391,7 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     
     if (!PMASTERNODE->masterAdjusted) {
         if (getNodesOnWorkspace(PWORKSPACE->m_iID) < NUMSTACKS) {
+						Debug::log(LOG, "MASTER FACTOR CONFIGURED {}", PWORKSPACEDATA->master_factor);
             PMASTERNODE->percMaster = PWORKSPACEDATA->master_factor ? PWORKSPACEDATA->master_factor : 1.0f / getNodesOnWorkspace(PWORKSPACE->m_iID);
         } else {
             PMASTERNODE->percMaster = PWORKSPACEDATA->master_factor ? PWORKSPACEDATA->master_factor : 1.0f / (NUMSTACKS);
