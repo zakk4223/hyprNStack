@@ -1,6 +1,10 @@
 [repository]
 name = "hyprNStack"
 authors = ["Zakk"]
+commit_pins = [
+	["03ebbe18ed8517ee22591eac82cd54322f42cb7d", "08e803bb0b8cae0ae8e09cc2c66a3720a829c2ec"]
+]
+
 
 [hyprNStack]
 description = "N-Stack layout"
