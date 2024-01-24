@@ -1298,7 +1298,18 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
 
         if (vars.size() >= 2) {
-            int newStackCount = std::stoi(vars[1]);
+            int newStackCount = 2;
+            switch (vars[1][0]) {
+                case '+':
+                    newStackCount = PWORKSPACEDATA->m_iStackCount + std::stoi(vars[1].substr(1));
+                    break;
+                case '-':
+                    newStackCount = PWORKSPACEDATA->m_iStackCount - std::stoi(vars[1].substr(1));
+                    break;
+                default:
+                    newStackCount = std::stoi(vars[1]);
+                    break;
+            }
             if (newStackCount) {
                 if (newStackCount < 2)
                     newStackCount = 2;
