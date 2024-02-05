@@ -179,10 +179,12 @@ void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 
 
 void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
+		Debug::log(LOG, "NSTACK CREATE TILING {}", pWindow);
     if (pWindow->m_bIsFloating)
         return;
 
 		const auto WSID = pWindow->m_iWorkspaceID;
+		
 			
 		const auto WORKSPACEDATA = getMasterWorkspaceData(WSID);
 
@@ -272,6 +274,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     }
 
     // recalc
+		Debug::log(LOG, "NSTACK RECALCULATE MONITOR CALL");
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
@@ -328,6 +331,7 @@ void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
     if (PMONITOR->specialWorkspaceID) {
+				Debug::log(LOG, "CALCULATE SPECIAL WORKSPACE {}", PMONITOR->specialWorkspaceID);
         calculateWorkspace(PMONITOR->specialWorkspaceID);
     }
 
@@ -352,6 +356,7 @@ void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     }
 
     // calc the WS
+		Debug::log(LOG, "CALCULATE WORKSPACE {}", PWORKSPACE->m_iID);
     calculateWorkspace(PWORKSPACE->m_iID);
 }
 

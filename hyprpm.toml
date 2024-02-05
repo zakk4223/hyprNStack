@@ -2,7 +2,8 @@
 name = "hyprNStack"
 authors = ["Zakk"]
 commit_pins = [
-	["03ebbe18ed8517ee22591eac82cd54322f42cb7d", "08e803bb0b8cae0ae8e09cc2c66a3720a829c2ec"]
+	["03ebbe18ed8517ee22591eac82cd54322f42cb7d", "08e803bb0b8cae0ae8e09cc2c66a3720a829c2ec"],
+	["84ab8d11e8951a6551d1e1bf87796a8589da6d47","c44ff8c38149acd7deff9fd9dac65e6b23a2cafb"]
 ]
 
 
