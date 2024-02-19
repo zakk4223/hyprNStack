@@ -20,16 +20,16 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:orientation", SConfigValue{.strValue = "left"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top", SConfigValue{.intValue = 0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:new_is_master", SConfigValue{.intValue = 1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only", SConfigValue{.intValue = 0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor", SConfigValue{.floatValue = 0.8f});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen", SConfigValue{.intValue = 1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:stacks", SConfigValue{.intValue = 2});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master", SConfigValue{.intValue = 0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", SConfigValue{.floatValue = 0.5f});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", SConfigValue{.floatValue = 0.5f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:orientation", Hyprlang::STRING{"left"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:new_is_master", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor", Hyprlang::FLOAT{0.8f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:stacks", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", Hyprlang::FLOAT{0.5f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", Hyprlang::FLOAT{0.5f});
     g_pNstackLayout = std::make_unique<CHyprNstackLayout>();
 		HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
 			std::vector<void *> moveData = std::any_cast<std::vector<void *>>(data);
