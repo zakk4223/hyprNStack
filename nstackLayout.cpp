@@ -60,18 +60,19 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 			wsorientation = std::any_cast<char *>(wslayoutopts.at("nstack-orientation"));
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
 
+		std::string cpporientation = wsorientation;
     //create on the fly if it doesn't exist yet
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
-    if (wsorientation == "top") {
+    if (cpporientation == "top") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_TOP;
-    } else if (wsorientation == "right") {
+    } else if (cpporientation == "right") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_RIGHT;
-    } else if (wsorientation == "bottom") {
+    } else if (cpporientation == "bottom") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_BOTTOM;
-    } else if (wsorientation == "left") {
+    } else if (cpporientation == "left") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_LEFT;
-    } else if (wsorientation == "vcenter") {
+    } else if (cpporientation == "vcenter") {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
     } else {
         PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_HCENTER;
@@ -179,7 +180,6 @@ void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 
 
 void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
-		Debug::log(LOG, "NSTACK CREATE TILING {}", pWindow);
     if (pWindow->m_bIsFloating)
         return;
 
@@ -274,7 +274,6 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     }
 
     // recalc
-		Debug::log(LOG, "NSTACK RECALCULATE MONITOR CALL");
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
@@ -331,7 +330,6 @@ void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
     if (PMONITOR->specialWorkspaceID) {
-				Debug::log(LOG, "CALCULATE SPECIAL WORKSPACE {}", PMONITOR->specialWorkspaceID);
         calculateWorkspace(PMONITOR->specialWorkspaceID);
     }
 
@@ -356,7 +354,6 @@ void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     }
 
     // calc the WS
-		Debug::log(LOG, "CALCULATE WORKSPACE {}", PWORKSPACE->m_iID);
     calculateWorkspace(PWORKSPACE->m_iID);
 }
 
@@ -389,7 +386,6 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     
     if (!PMASTERNODE->masterAdjusted) {
         if (getNodesOnWorkspace(PWORKSPACE->m_iID) < NUMSTACKS) {
-						Debug::log(LOG, "MASTER FACTOR CONFIGURED {}", PWORKSPACEDATA->master_factor);
             PMASTERNODE->percMaster = PWORKSPACEDATA->master_factor ? PWORKSPACEDATA->master_factor : 1.0f / getNodesOnWorkspace(PWORKSPACE->m_iID);
         } else {
             PMASTERNODE->percMaster = PWORKSPACEDATA->master_factor ? PWORKSPACEDATA->master_factor : 1.0f / (NUMSTACKS);
@@ -412,7 +408,6 @@ void CHyprNstackLayout::calculateWorkspace(const int& ws) {
     if (ONLYMASTERS) {
       if (centerMasterWindow) {
 
-						Debug::log(LOG, "CENTER MASTER, ADJ {} ({})", PMASTERNODE->masterAdjusted, PWORKSPACEDATA->single_master_factor);
             if (!PMASTERNODE->masterAdjusted) 
                 PMASTERNODE->percMaster = PWORKSPACEDATA->single_master_factor ? PWORKSPACEDATA->single_master_factor : 0.5f;
 
