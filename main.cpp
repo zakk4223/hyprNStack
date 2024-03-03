@@ -1,5 +1,5 @@
 #include <hyprland/src/config/ConfigManager.hpp>
-#include <hyprland/src/helpers/Workspace.hpp>
+#include <hyprland/src/desktop/Workspace.hpp>
 #include "globals.hpp"
 #include "nstackLayout.hpp"
 #include <unistd.h>
