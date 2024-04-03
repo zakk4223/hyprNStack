@@ -45,17 +45,57 @@ void CHyprNstackLayout::removeWorkspaceData(const int& ws) {
 			m_lMasterWorkspacesData.remove(*wsdata);
 }
 
+
+SWorkspaceRule CHyprNstackLayout::getMergedWorkspaceRule(CWorkspace *workspace) {
+	SWorkspaceRule retRule{};
+
+	retRule.isPersistent = false;
+	const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(workspace);
+	for (auto& wsrule  : WORKSPACERULES) {
+		if (wsrule.isPersistent)
+			retRule.isPersistent = true;
+		if (wsrule.gapsIn.has_value())
+			retRule.gapsIn = wsrule.gapsIn;
+		if (wsrule.gapsOut.has_value())
+			retRule.gapsOut = wsrule.gapsOut;
+		if (wsrule.borderSize.has_value())
+			retRule.borderSize = wsrule.borderSize;
+		if (wsrule.border.has_value())
+			retRule.border = wsrule.border;
+		if (wsrule.rounding.has_value())
+			retRule.rounding = wsrule.rounding;
+		if (wsrule.decorate.has_value())
+			retRule.decorate = wsrule.decorate;
+		if (wsrule.shadow.has_value())
+			retRule.shadow = wsrule.shadow;
+		if (wsrule.onCreatedEmptyRunCmd.has_value())
+			retRule.onCreatedEmptyRunCmd = wsrule.onCreatedEmptyRunCmd;
+
+		if (!wsrule.layoutopts.empty()) {
+			for (const auto &lopt : wsrule.layoutopts) {
+				retRule.layoutopts[lopt.first] = lopt.second;
+			}
+		}
+	}
+
+	return retRule;
+
+}
+
+
 SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
     for (auto& n : m_lMasterWorkspacesData) {
         if (n.workspaceID == ws)
             return &n;
     }
 		const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+		const auto wsrule = getMergedWorkspaceRule(PWORKSPACE);
 		const auto wslayoutopts = wsrule.layoutopts;
 
 		static auto* const orientation = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
 		auto wsorientation = *orientation;
+
+		
 		try {
 			wsorientation = std::any_cast<char *>(wslayoutopts.at("nstack-orientation"));
 		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
@@ -631,7 +671,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
 
     const auto PWINDOW = pNode->pWindow;
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
-		const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+		const auto WORKSPACERULE = getMergedWorkspaceRule(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
 		if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
 			return;
@@ -1423,3 +1463,11 @@ void CHyprNstackLayout::onEnable() {
 void CHyprNstackLayout::onDisable() {
     m_lMasterNodesData.clear();
 }
+
+
+Vector2D CHyprNstackLayout::predictSizeForNewWindowTiled() {
+	//What the fuck is this shit. Seriously.
+	return {};
+}
+
+
