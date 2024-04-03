@@ -1,6 +1,7 @@
 #pragma once
 
 #include "globals.hpp"
+#include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <vector>
@@ -98,12 +99,12 @@ class CHyprNstackLayout : public IHyprLayout {
     SNstackNodeData*                  getNodeFromWindow(CWindow*);
     SNstackNodeData*                  getMasterNodeOnWorkspace(const int&);
     SNstackWorkspaceData*             getMasterWorkspaceData(const int&);
-    void                              calculateWorkspace(const int&);
+    void                              calculateWorkspace(PHLWORKSPACE);
     CWindow*                          getNextWindow(CWindow*, bool);
     int                               getMastersOnWorkspace(const int&);
     bool                              prepareLoseFocus(CWindow*);
     void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
-		SWorkspaceRule										getMergedWorkspaceRule(CWorkspace *workspace);
+		SWorkspaceRule										getMergedWorkspaceRule(PHLWORKSPACE workspace);
 
     friend struct SNstackNodeData;
     friend struct SNstackWorkspaceData;
