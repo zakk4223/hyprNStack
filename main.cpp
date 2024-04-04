@@ -1,5 +1,6 @@
 #include "globals.hpp"
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
 #include "nstackLayout.hpp"
 #include <unistd.h>
@@ -7,13 +8,20 @@
 // Methods
 inline std::unique_ptr<CHyprNstackLayout> g_pNstackLayout;
 
-static void deleteWorkspaceData(CWorkspace *ws) {
+static void deleteWorkspaceData(int ws) {
 	if (g_pNstackLayout)
-		g_pNstackLayout->removeWorkspaceData(ws->m_iID);
+		g_pNstackLayout->removeWorkspaceData(ws);
 }
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
+}
+
+
+void moveWorkspaceCallback(void *self, SCallbackInfo &cinfo, std::any data) {
+	std::vector<std::any> moveData = std::any_cast<std::vector<std::any>>(data);
+	PHLWORKSPACE ws = std::any_cast<PHLWORKSPACE>(moveData.front());
+	deleteWorkspaceData(ws->m_iID);
 }
 
 
@@ -31,16 +39,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", Hyprlang::FLOAT{0.5f});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", Hyprlang::FLOAT{0.5f});
     g_pNstackLayout = std::make_unique<CHyprNstackLayout>();
-		HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
-			std::vector<void *> moveData = std::any_cast<std::vector<void *>>(data);
-			CWorkspace *ws = static_cast<CWorkspace *>(moveData.front());
-			deleteWorkspaceData(ws);
-		});
+		HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", moveWorkspaceCallback);
 
 	
 		HyprlandAPI::registerCallbackDynamic(PHANDLE, "destroyWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
 			CWorkspace *ws = std::any_cast<CWorkspace *>(data);
-			deleteWorkspaceData(ws);
+			deleteWorkspaceData(ws->m_iID);
 		});
 	
     HyprlandAPI::addLayout(PHANDLE, "nstack", g_pNstackLayout.get());
