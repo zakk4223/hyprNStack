@@ -104,7 +104,6 @@ class CHyprNstackLayout : public IHyprLayout {
     int                               getMastersOnWorkspace(const int&);
     bool                              prepareLoseFocus(CWindow*);
     void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
-		SWorkspaceRule										getMergedWorkspaceRule(PHLWORKSPACE workspace);
 
     friend struct SNstackNodeData;
     friend struct SNstackWorkspaceData;

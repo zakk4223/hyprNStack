@@ -632,7 +632,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
 
     const auto PWINDOW = pNode->pWindow;
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
-		const auto WORKSPACERULE = getMergedWorkspaceRule(g_pCompositor->getWorkspaceByID(PWINDOW->workspaceID()));
+		const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->workspaceID()));
 
 		if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
 			return;
