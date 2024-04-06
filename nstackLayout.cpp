@@ -46,50 +46,13 @@ void CHyprNstackLayout::removeWorkspaceData(const int& ws) {
 }
 
 
-SWorkspaceRule CHyprNstackLayout::getMergedWorkspaceRule(PHLWORKSPACE workspace) {
-	SWorkspaceRule retRule{};
-
-	retRule.isPersistent = false;
-	const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(workspace);
-	for (auto& wsrule  : WORKSPACERULES) {
-		if (wsrule.isPersistent)
-			retRule.isPersistent = true;
-		if (wsrule.gapsIn.has_value())
-			retRule.gapsIn = wsrule.gapsIn;
-		if (wsrule.gapsOut.has_value())
-			retRule.gapsOut = wsrule.gapsOut;
-		if (wsrule.borderSize.has_value())
-			retRule.borderSize = wsrule.borderSize;
-		if (wsrule.border.has_value())
-			retRule.border = wsrule.border;
-		if (wsrule.rounding.has_value())
-			retRule.rounding = wsrule.rounding;
-		if (wsrule.decorate.has_value())
-			retRule.decorate = wsrule.decorate;
-		if (wsrule.shadow.has_value())
-			retRule.shadow = wsrule.shadow;
-		if (wsrule.onCreatedEmptyRunCmd.has_value())
-			retRule.onCreatedEmptyRunCmd = wsrule.onCreatedEmptyRunCmd;
-
-		if (!wsrule.layoutopts.empty()) {
-			for (const auto &lopt : wsrule.layoutopts) {
-				retRule.layoutopts[lopt.first] = lopt.second;
-			}
-		}
-	}
-
-	return retRule;
-
-}
-
-
 SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
     for (auto& n : m_lMasterWorkspacesData) {
         if (n.workspaceID == ws)
             return &n;
     }
 		const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-		const auto wsrule = getMergedWorkspaceRule(PWORKSPACE);
+		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
 		const auto wslayoutopts = wsrule.layoutopts;
 
 		static auto* const orientation = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
