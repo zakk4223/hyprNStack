@@ -1,5 +1,7 @@
 #include "nstackLayout.hpp"
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <format>
 
@@ -45,120 +47,127 @@ void CHyprNstackLayout::removeWorkspaceData(const int& ws) {
 			m_lMasterWorkspacesData.remove(*wsdata);
 }
 
+static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
 
-SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
-    for (auto& n : m_lMasterWorkspacesData) {
-        if (n.workspaceID == ws)
-            return &n;
-    }
-		const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(wsData->workspaceID));
 		const auto wslayoutopts = wsrule.layoutopts;
 
 		static auto* const orientation = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
-		auto wsorientation = *orientation;
+		std::string wsorientation = *orientation;
 
 		
-		try {
-			wsorientation = std::any_cast<char *>(wslayoutopts.at("nstack-orientation"));
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
+		if (wslayoutopts.contains("nstack-orientation"))
+			wsorientation = wslayoutopts.at("nstack-orientation");
 
 		std::string cpporientation = wsorientation;
     //create on the fly if it doesn't exist yet
-    const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
-    PWORKSPACEDATA->workspaceID = ws;
     if (cpporientation == "top") {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_TOP;
+        wsData->orientation = NSTACK_ORIENTATION_TOP;
     } else if (cpporientation == "right") {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_RIGHT;
+        wsData->orientation = NSTACK_ORIENTATION_RIGHT;
     } else if (cpporientation == "bottom") {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_BOTTOM;
+        wsData->orientation = NSTACK_ORIENTATION_BOTTOM;
     } else if (cpporientation == "left") {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_LEFT;
+        wsData->orientation = NSTACK_ORIENTATION_LEFT;
     } else if (cpporientation == "vcenter") {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
+        wsData->orientation = NSTACK_ORIENTATION_VCENTER;
     } else {
-        PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_HCENTER;
+        wsData->orientation = NSTACK_ORIENTATION_HCENTER;
     }
 
 		static auto* const NUMSTACKS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->getDataStaticPtr();
 		auto wsstacks = **NUMSTACKS;
 		
-		try {
-			std::string stackstr = wslayoutopts.at("nstack-stacks");
-			wsstacks = std::stol(stackstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
+		if (wslayoutopts.contains("nstack-stacks")) {
+			try {
+				std::string stackstr = wslayoutopts.at("nstack-stacks");
+				wsstacks = std::stol(stackstr);
+			} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt invalid rule value for nstack-stacks: {}", e.what());}
+		}
     if (wsstacks) {
-        PWORKSPACEDATA->m_iStackCount = wsstacks;
+        wsData->m_iStackCount = wsstacks;
     }
 
 		static auto* const MFACT = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:mfact")->getDataStaticPtr();
 		auto wsmfact = **MFACT;
-		try {
+		if (wslayoutopts.contains("nstack-mfact")) {
 			std::string mfactstr = wslayoutopts.at("nstack-mfact");
-			wsmfact = std::stof(mfactstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    if (wsmfact) {
-        PWORKSPACEDATA->master_factor = wsmfact; 
-    }
+			try {
+				wsmfact = std::stof(mfactstr);
+			} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt nstack-mfact format error: {}", e.what());}
+		}
+    		wsData->master_factor = wsmfact; 
 
 		static auto* const SMFACT = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:single_mfact")->getDataStaticPtr();
 		auto wssmfact = **SMFACT;
-		try {
+
+		if (wslayoutopts.contains("nstack-single_mfact")) {
 			std::string smfactstr = wslayoutopts.at("nstack-single_mfact");
-			wssmfact = std::stof(smfactstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->single_master_factor = wssmfact; 
+			try {
+				wssmfact = std::stof(smfactstr);
+			} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt nstack-single_mfact format error: {}", e.what());}
+		}
+   	wsData->single_master_factor = wssmfact; 
 
 		static auto* const SSFACT = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor")->getDataStaticPtr();
 		auto wsssfact = **SSFACT;
-		try {
+		if (wslayoutopts.contains("nstack-special_scale_factor")) {
 			std::string ssfactstr = wslayoutopts.at("nstack-special_scale_factor");
-			wsssfact = std::stof(ssfactstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->special_scale_factor = wsssfact; 
+			try {
+				wsssfact = std::stof(ssfactstr);
+			} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt nstack-special_scale_factor format error: {}", e.what());}
+		}
+    wsData->special_scale_factor = wsssfact; 
 
 		static auto* const NEWTOP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top")->getDataStaticPtr();
 		auto wsnewtop = **NEWTOP;
-		try {
-			std::string newtopstr = wslayoutopts.at("nstack-new_on_top");
-			wsnewtop = std::stoi(newtopstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-		PWORKSPACEDATA->new_on_top = wsnewtop;
+		if (wslayoutopts.contains("nstack-new_on_top"))
+			wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top"));
+		wsData->new_on_top = wsnewtop;
 
 		static auto* const NEWMASTER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:new_is_master")->getDataStaticPtr();
 		auto wsnewmaster = **NEWMASTER;
-		try {
-			std::string newmasterstr = wslayoutopts.at("nstack-new_is_master");
-			wsnewmaster = std::stoi(newmasterstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->new_is_master = wsnewmaster; 
+		if (wslayoutopts.contains("nstack-new_is_master"))
+			wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master"));
+    wsData->new_is_master = wsnewmaster; 
 
 		static auto* const NGWO = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->getDataStaticPtr();
 		auto wsngwo = **NGWO;
-		try {
-			std::string ngwostr = wslayoutopts.at("nstack-no_gaps_when_only");
-			wsngwo = std::stoi(ngwostr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->no_gaps_when_only = wsngwo; 
+		if (wslayoutopts.contains("nstack-no_gaps_when_only"))
+			wsngwo = configStringToInt(wslayoutopts.at("nstack-no_gaps_when_only"));
+    wsData->no_gaps_when_only = wsngwo; 
 
 		static auto* const INHERITFS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen")->getDataStaticPtr();
 		auto wsinheritfs = **INHERITFS;
-		try {
-			std::string inheritfsstr = wslayoutopts.at("nstack-inherit_fullscreen");
-			wsinheritfs = std::stoi(inheritfsstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->inherit_fullscreen = wsinheritfs; 
+		if (wslayoutopts.contains("nstack-inherit_fullscreen"))
+			wsinheritfs = configStringToInt(wslayoutopts.at("nstack-inherit_fullscreen"));
+    wsData->inherit_fullscreen = wsinheritfs; 
 
 		static auto* const CENTERSM = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->getDataStaticPtr();
 		auto wscentersm = **CENTERSM;
-		try {
-			std::string centersmstr = wslayoutopts.at("nstack-center_single_master");
-			wscentersm = std::stoi(centersmstr);
-		} catch (std::exception& e) {Debug::log(ERR, "Nstack layoutopt rule error: {}", e.what());}
-    PWORKSPACEDATA->center_single_master = wscentersm;
+		if (wslayoutopts.contains("nstack-center_single_master"))
+			wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master"));
+    wsData->center_single_master = wscentersm;
+}
 
-    return PWORKSPACEDATA;
+
+SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
+		SNstackWorkspaceData *retData = nullptr;
+    for (auto& n : m_lMasterWorkspacesData) {
+        if (n.workspaceID == ws) {
+						retData = &n;
+						break;
+				}
+						
+    }
+		const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
+		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+		const auto wslayoutopts = wsrule.layoutopts;
+
+    retData = &m_lMasterWorkspacesData.emplace_back();
+    retData->workspaceID = ws;
+		applyWorkspaceLayoutOptions(retData);
+		return retData;
 }
 
 std::string CHyprNstackLayout::getLayoutName() {
