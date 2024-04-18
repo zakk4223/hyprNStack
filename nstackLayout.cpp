@@ -1392,20 +1392,33 @@ void CHyprNstackLayout::buildOrientationCycleVectorFromVars(std::vector<eColOrie
     }
 }
 
-void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir, bool silent) {
     if (!isDirection(dir))
         return;
 
     const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
+
+	  if (!PWINDOW2)
+		    return;
+
+	  pWindow->setAnimationsToMove();
+	  
+
 		if (pWindow->m_pWorkspace != PWINDOW2->m_pWorkspace) {
- 		// if different monitors, send to monitor
-		onWindowRemovedTiling(pWindow);
-		pWindow->moveToWorkspace(PWINDOW2->m_pWorkspace);
-		pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
-		onWindowCreatedTiling(pWindow);
+ 			// if different monitors, send to monitor
+			onWindowRemovedTiling(pWindow);
+			pWindow->moveToWorkspace(PWINDOW2->m_pWorkspace);
+			pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
+			if (!silent) {
+				const auto pMonitor = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+				g_pCompositor->setActiveMonitor(pMonitor);
+			}
+			onWindowCreatedTiling(pWindow);
     } else {
         // if same monitor, switch windows
         switchWindows(pWindow, PWINDOW2);
+				if (silent)
+					g_pCompositor->focusWindow(PWINDOW2);
 		}
 }
 
