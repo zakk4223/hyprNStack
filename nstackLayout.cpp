@@ -4,11 +4,12 @@
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <format>
+#include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
 
 
-SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(CWindow* pWindow) {
+SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(PHLWINDOW pWindow) {
     for (auto& nd : m_lMasterNodesData) {
-        if (nd.pWindow == pWindow)
+        if (nd.pWindow.lock() == pWindow)
             return &nd;
     }
 
@@ -191,7 +192,7 @@ void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 }
 
 
-void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direction) {
+void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating)
         return;
 
@@ -207,8 +208,8 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     PNODE->workspaceID = pWindow->workspaceID();
     PNODE->pWindow     = pWindow;
 
-    auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
-                      getNodeFromWindow(g_pCompositor->m_pLastWindow) :
+    auto               OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow.lock()->m_pWorkspace == pWindow->m_pWorkspace ?
+                      getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) :
                       getMasterNodeOnWorkspace(pWindow->workspaceID());
 
 		const auto				MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
@@ -221,25 +222,24 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
 
 		if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
-			if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
+			if (OPENINGON->pWindow.lock()->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
 				return;
 		}
 
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow // target is group
-        && pWindow->canBeGroupedInto(OPENINGON->pWindow)) {
-
-        if (!pWindow->m_sGroupData.pNextWindow)
-            pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock() // target is group
+        && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock())) {
 
         m_lMasterNodesData.remove(*PNODE);
 
         static const auto* USECURRPOS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:insert_after_current");
-        (**USECURRPOS ? OPENINGON->pWindow : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
+        (**USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow.lock()->getGroupTail())->insertWindowToGroup(pWindow);
 
-        OPENINGON->pWindow->setGroupCurrent(pWindow);
+        OPENINGON->pWindow.lock()->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
+        if(!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+			      pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
         return;
     }
@@ -289,7 +289,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
-void CHyprNstackLayout::onWindowRemovedTiling(CWindow* pWindow) {
+void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE)
@@ -639,7 +639,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     const bool DISPLAYTOP    = STICKS(pNode->position.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool DISPLAYBOTTOM = STICKS(pNode->position.y + pNode->size.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
 
-    const auto PWINDOW = pNode->pWindow;
+    const auto PWINDOW = pNode->pWindow.lock();
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 		const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->workspaceID()));
 
@@ -664,8 +664,8 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
 
 
 
-    if (!g_pCompositor->windowValidMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {} holding invalid window {}!!", static_cast<void *>(pNode), static_cast<void *>(PWINDOW));
+    if (!validMapped(PWINDOW)) {
+        Debug::log(ERR, "Node {} holding invalid window {}!!", pNode, PWINDOW);
         return;
     }
 
@@ -741,14 +741,14 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
 
 }
 
-bool CHyprNstackLayout::isWindowTiled(CWindow* pWindow) {
+bool CHyprNstackLayout::isWindowTiled(PHLWINDOW pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
-void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, CWindow* pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow;
+void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow.lock();
 
-    if (!g_pCompositor->windowValidMapped(PWINDOW))
+    if (!validMapped(PWINDOW))
         return;
 
     const auto PNODE = getNodeFromWindow(PWINDOW);
@@ -862,8 +862,8 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     m_bForceWarps = false;
 }
 
-void CHyprNstackLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreenMode fullscreenMode, bool on) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscreenMode fullscreenMode, bool on) {
+    if (!validMapped(pWindow))
         return;
 
     if (on == pWindow->m_bIsFullscreen || g_pCompositor->isWorkspaceSpecial(pWindow->workspaceID()))
@@ -945,7 +945,7 @@ void CHyprNstackLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
     recalculateMonitor(PMONITOR->ID);
 }
 
-void CHyprNstackLayout::recalculateWindow(CWindow* pWindow) {
+void CHyprNstackLayout::recalculateWindow(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE)
@@ -954,7 +954,7 @@ void CHyprNstackLayout::recalculateWindow(CWindow* pWindow) {
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
-SWindowRenderLayoutHints CHyprNstackLayout::requestRenderHints(CWindow* pWindow) {
+SWindowRenderLayoutHints CHyprNstackLayout::requestRenderHints(PHLWINDOW pWindow) {
     // window should be valid, insallah
 
     SWindowRenderLayoutHints hints;
@@ -962,7 +962,7 @@ SWindowRenderLayoutHints CHyprNstackLayout::requestRenderHints(CWindow* pWindow)
     return hints; // master doesnt have any hints
 }
 
-void CHyprNstackLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
+void CHyprNstackLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
     // windows should be valid, insallah
 
     const auto PNODE  = getNodeFromWindow(pWindow);
@@ -992,7 +992,7 @@ void CHyprNstackLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     prepareNewFocus(pWindow2, inheritFullscreen);
 }
 
-void CHyprNstackLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {
+void CHyprNstackLayout::alterSplitRatio(PHLWINDOW pWindow, float ratio, bool exact) {
     // window should be valid, insallah
 
     const auto PNODE = getNodeFromWindow(pWindow);
@@ -1009,7 +1009,7 @@ void CHyprNstackLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exac
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
-CWindow* CHyprNstackLayout::getNextWindow(CWindow* pWindow, bool next) {
+PHLWINDOW CHyprNstackLayout::getNextWindow(PHLWINDOW pWindow, bool next) {
     if (!isWindowTiled(pWindow))
         return nullptr;
 
@@ -1028,13 +1028,13 @@ CWindow* CHyprNstackLayout::getNextWindow(CWindow* pWindow, bool next) {
         CANDIDATE =
             std::find_if(nodes.begin(), nodes.end(), [&](const auto& other) { return other != *PNODE && ISMASTER != other.isMaster && other.workspaceID == PNODE->workspaceID; });
 
-    return CANDIDATE == nodes.end() ? nullptr : CANDIDATE->pWindow;
+    return CANDIDATE == nodes.end() ? nullptr : CANDIDATE->pWindow.lock();
 }
 
 
 
 
-bool CHyprNstackLayout::prepareLoseFocus(CWindow* pWindow) {
+bool CHyprNstackLayout::prepareLoseFocus(PHLWINDOW pWindow) {
     if (!pWindow)
         return false;
 
@@ -1048,7 +1048,7 @@ bool CHyprNstackLayout::prepareLoseFocus(CWindow* pWindow) {
     return false;
 }
 
-void CHyprNstackLayout::prepareNewFocus(CWindow* pWindow, bool inheritFullscreen) {
+void CHyprNstackLayout::prepareNewFocus(PHLWINDOW pWindow, bool inheritFullscreen) {
     if (!pWindow)
         return;
 
@@ -1057,8 +1057,8 @@ void CHyprNstackLayout::prepareNewFocus(CWindow* pWindow, bool inheritFullscreen
 }
 
 std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
-    auto switchToWindow = [&](CWindow* PWINDOWTOCHANGETO) {
-        if (!g_pCompositor->windowValidMapped(PWINDOWTOCHANGETO))
+    auto switchToWindow = [&](PHLWINDOW PWINDOWTOCHANGETO) {
+        if (!validMapped(PWINDOWTOCHANGETO))
             return;
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
@@ -1093,9 +1093,9 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
-        const auto NEWCHILD = PMASTER->pWindow;
+        const auto NEWCHILD = PMASTER->pWindow.lock();
 
-        if (PMASTER->pWindow != PWINDOW) {
+        if (PMASTER->pWindow.lock() != PWINDOW) {
             const auto NEWMASTER         = PWINDOW;
             const bool newFocusToChild   = vars.size() >= 2 && vars[1] == "child";
             const bool inheritFullscreen = prepareLoseFocus(NEWMASTER);
@@ -1106,7 +1106,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         } else {
             for (auto& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
-                    const auto NEWMASTER         = n.pWindow;
+                    const auto NEWMASTER         = n.pWindow.lock();
                     const bool inheritFullscreen = prepareLoseFocus(NEWCHILD);
                     switchWindows(NEWMASTER, NEWCHILD);
                     const bool newFocusToMaster = vars.size() >= 2 && vars[1] == "master";
@@ -1137,17 +1137,17 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
-        if (PMASTER->pWindow != PWINDOW) {
-            switchToWindow(PMASTER->pWindow);
-            prepareNewFocus(PMASTER->pWindow, inheritFullscreen);
+        if (PMASTER->pWindow.lock() != PWINDOW) {
+            switchToWindow(PMASTER->pWindow.lock());
+            prepareNewFocus(PMASTER->pWindow.lock(), inheritFullscreen);
         } else if (vars.size() >= 2 && vars[1] == "master") {
             return 0;
         } else {
             // if master is focused keep master focused (don't do anything)
             for (auto& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
-                    switchToWindow(n.pWindow);
-                    prepareNewFocus(n.pWindow, inheritFullscreen);
+                    switchToWindow(n.pWindow.lock());
+                    prepareNewFocus(n.pWindow.lock(), inheritFullscreen);
                     break;
                 }
             }
@@ -1177,7 +1177,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         switchToWindow(PPREVWINDOW);
         prepareNewFocus(PPREVWINDOW, inheritFullscreen);
     } else if (command == "swapnext") {
-        if (!g_pCompositor->windowValidMapped(header.pWindow))
+        if (!validMapped(header.pWindow))
             return 0;
 
         if (header.pWindow->m_bIsFloating) {
@@ -1193,7 +1193,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             g_pCompositor->focusWindow(header.pWindow);
         }
     } else if (command == "swapprev") {
-        if (!g_pCompositor->windowValidMapped(header.pWindow))
+        if (!validMapped(header.pWindow))
             return 0;
 
         if (header.pWindow->m_bIsFloating) {
@@ -1209,7 +1209,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             g_pCompositor->focusWindow(header.pWindow);
         }
     } else if (command == "addmaster") {
-        if (!g_pCompositor->windowValidMapped(header.pWindow))
+        if (!validMapped(header.pWindow))
             return 0;
 
         if (header.pWindow->m_bIsFloating)
@@ -1236,7 +1236,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     } else if (command == "removemaster") {
 
-        if (!g_pCompositor->windowValidMapped(header.pWindow))
+        if (!validMapped(header.pWindow))
             return 0;
 
         if (header.pWindow->m_bIsFloating)
@@ -1392,7 +1392,7 @@ void CHyprNstackLayout::buildOrientationCycleVectorFromVars(std::vector<eColOrie
     }
 }
 
-void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir, bool silent) {
+void CHyprNstackLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, bool silent) {
     if (!isDirection(dir))
         return;
 
@@ -1423,7 +1423,7 @@ void CHyprNstackLayout::moveWindowTo(CWindow* pWindow, const std::string& dir, b
 }
 
 
-void CHyprNstackLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
+void CHyprNstackLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {
     const auto PNODE = getNodeFromWindow(from);
 
     if (!PNODE)
@@ -1439,7 +1439,7 @@ void CHyprNstackLayout::onEnable() {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())
             continue;
 
-        onWindowCreatedTiling(w.get());
+        onWindowCreatedTiling(w);
     }
 }
 

@@ -27,7 +27,7 @@ struct SNstackNodeData {
     float    percMaster     = 0.5f;
     int      stackNum       = 0;
 
-    CWindow* pWindow = nullptr;
+    PHLWINDOWREF pWindow;
 
     Vector2D position;
     Vector2D size;
@@ -38,7 +38,7 @@ struct SNstackNodeData {
 		bool		 ignoreFullscreenChecks = false;
 
     bool     operator==(const SNstackNodeData& rhs) const {
-        return pWindow == rhs.pWindow;
+        return pWindow.lock() == rhs.pWindow.lock();
     }
 };
 
@@ -64,20 +64,20 @@ struct SNstackWorkspaceData {
 
 class CHyprNstackLayout : public IHyprLayout {
   public:
-    virtual void                     onWindowCreatedTiling(CWindow*, eDirection direction = DIRECTION_DEFAULT);
-    virtual void                     onWindowRemovedTiling(CWindow*);
-    virtual bool                     isWindowTiled(CWindow*);
+    virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
+    virtual void                     onWindowRemovedTiling(PHLWINDOW);
+    virtual bool                     isWindowTiled(PHLWINDOW);
     virtual void                     recalculateMonitor(const int&);
-    virtual void                     recalculateWindow(CWindow*);
-    virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner, CWindow* pWindow = nullptr);
-    virtual void                     fullscreenRequestForWindow(CWindow*, eFullscreenMode, bool);
+    virtual void                     recalculateWindow(PHLWINDOW);
+    virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner, PHLWINDOW pWindow = nullptr);
+    virtual void                     fullscreenRequestForWindow(PHLWINDOW, eFullscreenMode, bool);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
-    virtual SWindowRenderLayoutHints requestRenderHints(CWindow*);
-    virtual void                     switchWindows(CWindow*, CWindow*);
-		virtual void										 moveWindowTo(CWindow *, const std::string& dir, bool silent);
-    virtual void                     alterSplitRatio(CWindow*, float, bool);
+    virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);
+    virtual void                     switchWindows(PHLWINDOW, PHLWINDOW);
+		virtual void										 moveWindowTo(PHLWINDOW, const std::string& dir, bool silent);
+    virtual void                     alterSplitRatio(PHLWINDOW, float, bool);
     virtual std::string              getLayoutName();
-    virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);
+    virtual void                     replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to);
     virtual Vector2D 								 predictSizeForNewWindowTiled();
 
     virtual void                     onEnable();
@@ -96,15 +96,32 @@ class CHyprNstackLayout : public IHyprLayout {
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SNstackNodeData*);
     void                              resetNodeSplits(const int&);
-    SNstackNodeData*                  getNodeFromWindow(CWindow*);
+    SNstackNodeData*                  getNodeFromWindow(PHLWINDOW);
     SNstackNodeData*                  getMasterNodeOnWorkspace(const int&);
     SNstackWorkspaceData*             getMasterWorkspaceData(const int&);
     void                              calculateWorkspace(PHLWORKSPACE);
-    CWindow*                          getNextWindow(CWindow*, bool);
+    PHLWINDOW                          getNextWindow(PHLWINDOW, bool);
     int                               getMastersOnWorkspace(const int&);
-    bool                              prepareLoseFocus(CWindow*);
-    void                              prepareNewFocus(CWindow*, bool inherit_fullscreen);
+    bool                              prepareLoseFocus(PHLWINDOW);
+    void                              prepareNewFocus(PHLWINDOW, bool inherit_fullscreen);
 
     friend struct SNstackNodeData;
     friend struct SNstackWorkspaceData;
+};
+
+
+template <typename CharT>
+struct std::formatter<SNstackNodeData*, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const SNstackNodeData* const& node, FormatContext& ctx) const {
+        auto out = ctx.out();
+        if (!node)
+            return std::format_to(out, "[Node nullptr]");
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", (uintptr_t)node, node->workspaceID, node->position, node->size);
+        if (node->isMaster)
+            std::format_to(out, ", master");
+        if (!node->pWindow.expired())
+            std::format_to(out, ", window: {:x}", node->pWindow.lock());
+        return std::format_to(out, "]");
+    }
 };
