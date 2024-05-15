@@ -165,8 +165,10 @@ SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
 		const auto wsrule = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
 		const auto wslayoutopts = wsrule.layoutopts;
 
-    retData = &m_lMasterWorkspacesData.emplace_back();
-    retData->workspaceID = ws;
+	  if (retData == nullptr) {
+      retData = &m_lMasterWorkspacesData.emplace_back();
+      retData->workspaceID = ws;
+		}
 		applyWorkspaceLayoutOptions(retData);
 		return retData;
 }
