@@ -336,6 +336,9 @@ void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
 void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     const auto PMONITOR   = g_pCompositor->getMonitorFromID(monid);
+		if (!PMONITOR || !PMONITOR->activeWorkspace)
+						return;
+
     const auto PWORKSPACE = PMONITOR->activeWorkspace;
 
     if (!PWORKSPACE)
