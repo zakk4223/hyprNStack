@@ -4,6 +4,7 @@
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/helpers/math/Math.hpp>
 #include <vector>
 #include <list>
 #include <deque>
