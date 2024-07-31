@@ -300,8 +300,8 @@ void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     pWindow->unsetWindowData(PRIORITY_LAYOUT);
     pWindow->updateWindowData();
 
-    if (pWindow->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+    if (pWindow->isFullscreen())
+        g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
     const auto MASTERSLEFT = getMastersOnWorkspace(PNODE->workspaceID);
 
@@ -348,39 +348,45 @@ void CHyprNstackLayout::recalculateMonitor(const int& monid) {
     if (PMONITOR->activeSpecialWorkspace) {
         calculateWorkspace(PMONITOR->activeSpecialWorkspace);
     }
-
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
-        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL)
-            return;
-
-        // massive hack from the fullscreen func
-        const auto      PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-
-        SNstackNodeData fakeNode;
-        fakeNode.pWindow         = PFULLWINDOW;
-        fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-        fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-        fakeNode.workspaceID     = PWORKSPACE->m_iID;
-        PFULLWINDOW->m_vPosition = fakeNode.position;
-        PFULLWINDOW->m_vSize     = fakeNode.size;
-
-        applyNodeDataToWindow(&fakeNode);
-
-        return;
-    }
-
-    // calc the WS
     calculateWorkspace(PWORKSPACE);
 }
 
 void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
     if (!PWORKSPACE)
         return;
+    
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
 
+    if (!PMONITOR)
+      return;
+
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        // massive hack from the fullscreen func
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+        if (PWORKSPACE->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+            PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
+            PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
+        } else if (PWORKSPACE->m_efFullscreenMode == FSMODE_MAXIMIZED) {
+             
+            SNstackNodeData fakeNode;
+            fakeNode.pWindow                = PFULLWINDOW;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition        = fakeNode.position;
+            PFULLWINDOW->m_vSize            = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
+
+            applyNodeDataToWindow(&fakeNode);
+        }
+
+        // if has fullscreen, don't calculate the rest
+        return;
+    }
     const auto         PWORKSPACEDATA = getMasterWorkspaceData(PWORKSPACE->m_iID);
     auto         NUMSTACKS      = PWORKSPACEDATA->m_iStackCount;
 
-    const auto         PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
 
     const auto         PMASTERNODE = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
     const auto         NODECOUNT = getNodesOnWorkspace(PWORKSPACE->m_iID);
@@ -647,7 +653,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 		const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->workspaceID()));
 
-		if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
+		if (PWINDOW->isFullscreen() && !pNode->ignoreFullscreenChecks)
 			return;
 
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
@@ -682,8 +688,8 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
     //auto calcSize = PWINDOW->m_vSize - Vector2D(2 * *PBORDERSIZE, 2 * *PBORDERSIZE);
 
     if (PWORKSPACEDATA->no_gaps_when_only && !g_pCompositor->isWorkspaceSpecial(PWINDOW->workspaceID()) &&
-        (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 ||
-         (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->workspaceID())->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
+        (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 || PWINDOW->isEffectiveInternalFSMode(FSMODE_MAXIMIZED)))
+          {
 
         PWINDOW->m_sWindowData.noBorder   = CWindowOverridableVar(WORKSPACERULE.noBorder.value_or(PWORKSPACEDATA->no_gaps_when_only != 2), PRIORITY_LAYOUT);
         PWINDOW->m_sWindowData.decorate = CWindowOverridableVar(WORKSPACERULE.decorate.value_or(true), PRIORITY_LAYOUT);
@@ -867,32 +873,20 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     m_bForceWarps = false;
 }
 
-void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscreenMode fullscreenMode, bool on) {
-    if (!validMapped(pWindow))
-        return;
 
-    if (on == pWindow->m_bIsFullscreen)
-        return; // ignore
-
+void CHyprMasterLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
     const auto PMONITOR   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->workspaceID());
+    const auto PWORKSPACE = pWindow->m_pWorkspace;
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && on) {
-        // if the window wants to be fullscreen but there already is one,
-        // ignore the request.
-        return;
+    // save position and size if floating
+    if (pWindow->m_bIsFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE) {
+        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goal();
+        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goal();
+        pWindow->m_vPosition             = pWindow->m_vRealPosition.goal();
+        pWindow->m_vSize                 = pWindow->m_vRealSize.goal();
     }
 
-    // otherwise, accept it.
-    pWindow->m_bIsFullscreen           = on;
-    PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
-
-		pWindow->updateDynamicRules();
-		pWindow->updateWindowDecos();
-    g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", std::to_string((int)on)});
-    EMIT_HOOK_EVENT("fullscreen", pWindow);
-
-    if (!pWindow->m_bIsFullscreen) {
+    if (EFFECTIVE_MODE == FSMODE_NONE) {
         // if it got its fullscreen disabled, set back its node if it had one
         const auto PNODE = getNodeFromWindow(pWindow);
         if (PNODE)
@@ -901,24 +895,13 @@ void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscree
             // get back its' dimensions from position and size
             pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+
             pWindow->unsetWindowData(PRIORITY_LAYOUT);
             pWindow->updateWindowData();
         }
     } else {
-        // if it now got fullscreen, make it fullscreen
-
-        PWORKSPACE->m_efFullscreenMode = fullscreenMode;
-
-        // save position and size if floating
-        if (pWindow->m_bIsFloating) {
-            pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goal();
-            pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goal();
-            pWindow->m_vPosition             = pWindow->m_vRealPosition.goal();
-            pWindow->m_vSize                 = pWindow->m_vRealSize.goal();
-        }
-
         // apply new pos and size being monitors' box
-        if (fullscreenMode == FULLSCREEN_FULL) {
+        if (EFFECTIVE_MODE == FSMODE_FULLSCREEN) {
             pWindow->m_vRealPosition = PMONITOR->vecPosition;
             pWindow->m_vRealSize     = PMONITOR->vecSize;
         } else {
@@ -926,26 +909,20 @@ void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscree
             // We make a fake "only" node and apply
             // To keep consistent with the settings without C+P code
 
-            SNstackNodeData fakeNode;
-            fakeNode.pWindow     = pWindow;
-            fakeNode.position    = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size        = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID = pWindow->workspaceID();
-            pWindow->m_vPosition = fakeNode.position;
-            pWindow->m_vSize     = fakeNode.size;
-						fakeNode.ignoreFullscreenChecks = true;
+            SMasterNodeData fakeNode;
+            fakeNode.pWindow                = pWindow;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = pWindow->workspaceID();
+            pWindow->m_vPosition            = fakeNode.position;
+            pWindow->m_vSize                = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);
         }
     }
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
-
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal());
-
     g_pCompositor->changeWindowZOrder(pWindow, true);
-
-    recalculateMonitor(PMONITOR->ID);
 }
 
 void CHyprNstackLayout::recalculateWindow(PHLWINDOW pWindow) {
@@ -1036,35 +1013,27 @@ PHLWINDOW CHyprNstackLayout::getNextWindow(PHLWINDOW pWindow, bool next) {
 
 
 
-bool CHyprNstackLayout::prepareLoseFocus(PHLWINDOW pWindow) {
-    if (!pWindow)
-        return false;
-
-		const auto WORKSPACEDATA = getMasterWorkspaceData(pWindow->workspaceID());
-    //if the current window is fullscreen, make it normal again if we are about to lose focus
-    if (pWindow->m_bIsFullscreen) {
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
-        return WORKSPACEDATA->inherit_fullscreen;
-    }
-
-    return false;
-}
-
-void CHyprNstackLayout::prepareNewFocus(PHLWINDOW pWindow, bool inheritFullscreen) {
-    if (!pWindow)
-        return;
-
-    if (inheritFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, true, g_pCompositor->getWorkspaceByID(pWindow->workspaceID())->m_efFullscreenMode);
-}
-
 std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     auto switchToWindow = [&](PHLWINDOW PWINDOWTOCHANGETO) {
         if (!validMapped(PWINDOWTOCHANGETO))
             return;
 
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
+        if (header.pWindow->isFullscreen()) {
+            const auto  PWORKSPACE        = header.pWindow->m_pWorkspace;
+            const auto  FSMODE            = header.pWindow->m_sFullscreenState.internal;
+		        const auto WORKSPACEDATA = getMasterWorkspaceData(PWORKSPACE->m_iID);
+            g_pCompositor->setWindowFullscreenInternal(header.pWindow, FSMODE_NONE);
+            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            if (WORKSPACEDATA->inherit_fullscreen)
+                g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, FSMODE);
+
+        } else {
+          g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+          g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
+        }
+        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+        g_pInputManager->simulateMouseMovement();
+        g_pInputManager->m_pForcedFocus.reset();
     };
 
     CVarList vars(message, 0, ' ');
@@ -1100,21 +1069,17 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (PMASTER->pWindow.lock() != PWINDOW) {
             const auto NEWMASTER         = PWINDOW;
             const bool newFocusToChild   = vars.size() >= 2 && vars[1] == "child";
-            const bool inheritFullscreen = prepareLoseFocus(NEWMASTER);
             switchWindows(NEWMASTER, NEWCHILD);
             const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
             switchToWindow(NEWFOCUS);
-            prepareNewFocus(NEWFOCUS, inheritFullscreen);
         } else {
             for (auto& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     const auto NEWMASTER         = n.pWindow.lock();
-                    const bool inheritFullscreen = prepareLoseFocus(NEWCHILD);
                     switchWindows(NEWMASTER, NEWCHILD);
                     const bool newFocusToMaster = vars.size() >= 2 && vars[1] == "master";
                     const auto NEWFOCUS         = newFocusToMaster ? NEWMASTER : NEWCHILD;
                     switchToWindow(NEWFOCUS);
-                    prepareNewFocus(NEWFOCUS, inheritFullscreen);
                     break;
                 }
             }
@@ -1141,7 +1106,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (PMASTER->pWindow.lock() != PWINDOW) {
             switchToWindow(PMASTER->pWindow.lock());
-            prepareNewFocus(PMASTER->pWindow.lock(), inheritFullscreen);
         } else if (vars.size() >= 2 && vars[1] == "master") {
             return 0;
         } else {
@@ -1149,7 +1113,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             for (auto& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     switchToWindow(n.pWindow.lock());
-                    prepareNewFocus(n.pWindow.lock(), inheritFullscreen);
                     break;
                 }
             }
@@ -1162,22 +1125,18 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
-        const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
 
         const auto PNEXTWINDOW = getNextWindow(PWINDOW, true);
         switchToWindow(PNEXTWINDOW);
-        prepareNewFocus(PNEXTWINDOW, inheritFullscreen);
     } else if (command == "cycleprev") {
         const auto PWINDOW = header.pWindow;
 
         if (!PWINDOW)
             return 0;
 
-        const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
 
         const auto PPREVWINDOW = getNextWindow(PWINDOW, false);
         switchToWindow(PPREVWINDOW);
-        prepareNewFocus(PPREVWINDOW, inheritFullscreen);
     } else if (command == "swapnext") {
         if (!validMapped(header.pWindow))
             return 0;
@@ -1190,7 +1149,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, true);
 
         if (PWINDOWTOSWAPWITH) {
-            prepareLoseFocus(header.pWindow);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             g_pCompositor->focusWindow(header.pWindow);
         }
@@ -1206,7 +1164,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, false);
 
         if (PWINDOWTOSWAPWITH) {
-            prepareLoseFocus(header.pWindow);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             g_pCompositor->focusWindow(header.pWindow);
         }
@@ -1220,7 +1177,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PNODE = getNodeFromWindow(header.pWindow);
 
 
-        prepareLoseFocus(header.pWindow);
 
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
@@ -1252,7 +1208,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (WINDOWS < 2 || MASTERS < 2)
             return 0;
 
-        prepareLoseFocus(header.pWindow);
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -1274,7 +1229,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
-        prepareLoseFocus(PWINDOW);
 
         const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 
@@ -1349,7 +1303,6 @@ void CHyprNstackLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
     if (!PWINDOW)
         return;
 
-    prepareLoseFocus(PWINDOW);
 
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 
