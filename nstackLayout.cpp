@@ -874,7 +874,7 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 }
 
 
-void CHyprMasterLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
+void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
     const auto PMONITOR   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
@@ -909,7 +909,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFul
             // We make a fake "only" node and apply
             // To keep consistent with the settings without C+P code
 
-            SMasterNodeData fakeNode;
+            SNstackNodeData fakeNode;
             fakeNode.pWindow                = pWindow;
             fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
             fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
