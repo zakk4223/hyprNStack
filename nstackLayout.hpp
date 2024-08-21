@@ -68,7 +68,7 @@ class CHyprNstackLayout : public IHyprLayout {
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);
     virtual bool                     isWindowTiled(PHLWINDOW);
-    virtual void                     recalculateMonitor(const int&);
+    virtual void                     recalculateMonitor(const MONITORID&);
     virtual void                     recalculateWindow(PHLWINDOW);
     virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner, PHLWINDOW pWindow = nullptr);
     virtual void                     fullscreenRequestForWindow(PHLWINDOW, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE);
