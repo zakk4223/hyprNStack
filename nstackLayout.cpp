@@ -1097,8 +1097,6 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
-        const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
-
         const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->workspaceID());
 
         if (!PMASTER)
