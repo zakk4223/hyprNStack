@@ -51,7 +51,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::reloadConfig();
 
-    return {"N_Stack layout", "Plugin for column layout", "Zakk", "1.0"};
+    return {"hyprNStack", "Plugin for column layout", "Zakk", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
