@@ -189,8 +189,8 @@ SNstackNodeData* CHyprNstackLayout::getMasterNodeOnWorkspace(const int& ws) {
 void CHyprNstackLayout::resetNodeSplits(const int& ws) {
 
 		removeWorkspaceData(ws);
-    const auto         WORKSPACE     = g_pCompositor->getWorkspaceByID(ws);
-    recalculateMonitor(WORKSPACE->m_iMonitorID);
+    const auto         PMONITOR     = g_pCompositor->getWorkspaceByID(ws)->m_pMonitor.lock();
+    recalculateMonitor(PMONITOR->ID);
 }
 
 
@@ -203,7 +203,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 			
 		const auto WORKSPACEDATA = getMasterWorkspaceData(WSID);
 
-    const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto         PMONITOR = pWindow->m_pMonitor.lock();
 
     const auto PNODE = WORKSPACEDATA->new_on_top ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
 
@@ -288,7 +288,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     }
 
     // recalc
-    recalculateMonitor(pWindow->m_iMonitorID);
+    recalculateMonitor(pWindow->monitorID());
 }
 
 void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
@@ -330,7 +330,7 @@ void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         }
     }
 
-    recalculateMonitor(pWindow->m_iMonitorID);
+    recalculateMonitor(pWindow->monitorID());
 }
 
 void CHyprNstackLayout::recalculateMonitor(const MONITORID& monid) {
@@ -355,7 +355,7 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
     if (!PWORKSPACE)
         return;
     
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+    const auto PMONITOR = PWORKSPACE->m_pMonitor.lock(); 
 
     if (!PMONITOR)
       return;
@@ -635,7 +635,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
             }
         }
     } else {
-        PMONITOR = g_pCompositor->getMonitorFromID(g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_iMonitorID);
+        PMONITOR = g_pCompositor->getWorkspaceByID(pNode->workspaceID)->m_pMonitor.lock();
     }
 
     if (!PMONITOR) {
@@ -771,7 +771,7 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     // get monitor
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->monitorID());
 
     m_bForceWarps = true;
 
@@ -875,7 +875,7 @@ void CHyprNstackLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
 
 
 void CHyprNstackLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
-    const auto PMONITOR   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR   = pWindow->m_pMonitor.lock();
     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     // save position and size if floating
@@ -931,7 +931,7 @@ void CHyprNstackLayout::recalculateWindow(PHLWINDOW pWindow) {
     if (!PNODE)
         return;
 
-    recalculateMonitor(pWindow->m_iMonitorID);
+    recalculateMonitor(pWindow->monitorID());
 }
 
 SWindowRenderLayoutHints CHyprNstackLayout::requestRenderHints(PHLWINDOW pWindow) {
@@ -954,7 +954,7 @@ void CHyprNstackLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
         return;
 
     if (PNODE->workspaceID != PNODE2->workspaceID) {
-        std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
+        std::swap(pWindow2->m_pMonitor, pWindow->m_pMonitor);
         std::swap(pWindow2->m_pWorkspace, pWindow->m_pWorkspace);
     }
 
@@ -962,9 +962,9 @@ void CHyprNstackLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
     PNODE->pWindow  = pWindow2;
     PNODE2->pWindow = pWindow;
 
-    recalculateMonitor(pWindow->m_iMonitorID);
+    recalculateMonitor(pWindow->monitorID());
     if (PNODE2->workspaceID != PNODE->workspaceID)
-        recalculateMonitor(pWindow2->m_iMonitorID);
+        recalculateMonitor(pWindow2->monitorID());
 
     g_pHyprRenderer->damageWindow(pWindow);
     g_pHyprRenderer->damageWindow(pWindow2);
@@ -985,7 +985,7 @@ void CHyprNstackLayout::alterSplitRatio(PHLWINDOW pWindow, float ratio, bool exa
     PMASTER->percMaster     = std::clamp(newRatio, 0.05f, 0.95f);
     PMASTER->masterAdjusted = true;
 
-    recalculateMonitor(pWindow->m_iMonitorID);
+    recalculateMonitor(pWindow->monitorID());
 }
 
 PHLWINDOW CHyprNstackLayout::getNextWindow(PHLWINDOW pWindow, bool next) {
@@ -1188,7 +1188,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             PNODE->isMaster = true;
         }
 
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        recalculateMonitor(header.pWindow->monitorID());
 
     } else if (command == "removemaster") {
 
@@ -1219,7 +1219,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             PNODE->isMaster = false;
         }
 
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        recalculateMonitor(header.pWindow->monitorID());
     } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom" || command == "orientationcenter" ||
                command == "orientationhcenter" || command == "orientationvcenter") {
         const auto PWINDOW = header.pWindow;
@@ -1243,7 +1243,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         else if (command == "orientationvcenter")
             PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
 
-        recalculateMonitor(header.pWindow->m_iMonitorID);
+        recalculateMonitor(header.pWindow->monitorID());
 
     } else if (command == "orientationnext") {
         runOrientationCycle(header, nullptr, 1);
@@ -1279,7 +1279,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
                 if (newStackCount < 2)
                     newStackCount = 2;
                 PWORKSPACEDATA->m_iStackCount = newStackCount;
-                recalculateMonitor(PWINDOW->m_iMonitorID);
+                recalculateMonitor(PWINDOW->monitorID());
             }
         }
     }
@@ -1318,7 +1318,7 @@ void CHyprNstackLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
         nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
 
     PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
-    recalculateMonitor(header.pWindow->m_iMonitorID);
+    recalculateMonitor(header.pWindow->monitorID());
 }
 
 void CHyprNstackLayout::buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle) {
@@ -1361,9 +1361,9 @@ void CHyprNstackLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
  			// if different monitors, send to monitor
 			onWindowRemovedTiling(pWindow);
 			pWindow->moveToWorkspace(PWINDOW2->m_pWorkspace);
-			pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
+			pWindow->m_pMonitor = PWINDOW2->m_pMonitor;
 			if (!silent) {
-				const auto pMonitor = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+				const auto pMonitor = pWindow->m_pMonitor.lock();
 				g_pCompositor->setActiveMonitor(pMonitor);
 			}
 			onWindowCreatedTiling(pWindow);
