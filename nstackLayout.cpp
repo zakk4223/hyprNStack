@@ -123,31 +123,31 @@ static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
 		static auto* const NEWTOP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top")->getDataStaticPtr();
 		auto wsnewtop = **NEWTOP;
 		if (wslayoutopts.contains("nstack-new_on_top"))
-			wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top"));
+			wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
 		wsData->new_on_top = wsnewtop;
 
 		static auto* const NEWMASTER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE,"plugin:nstack:layout:new_is_master")->getDataStaticPtr();
 		auto wsnewmaster = **NEWMASTER;
 		if (wslayoutopts.contains("nstack-new_is_master"))
-			wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master"));
+			wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
     wsData->new_is_master = wsnewmaster; 
 
 		static auto* const NGWO = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->getDataStaticPtr();
 		auto wsngwo = **NGWO;
 		if (wslayoutopts.contains("nstack-no_gaps_when_only"))
-			wsngwo = configStringToInt(wslayoutopts.at("nstack-no_gaps_when_only"));
+			wsngwo = configStringToInt(wslayoutopts.at("nstack-no_gaps_when_only")).value_or(0);
     wsData->no_gaps_when_only = wsngwo; 
 
 		static auto* const INHERITFS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen")->getDataStaticPtr();
 		auto wsinheritfs = **INHERITFS;
 		if (wslayoutopts.contains("nstack-inherit_fullscreen"))
-			wsinheritfs = configStringToInt(wslayoutopts.at("nstack-inherit_fullscreen"));
+			wsinheritfs = configStringToInt(wslayoutopts.at("nstack-inherit_fullscreen")).value_or(0);
     wsData->inherit_fullscreen = wsinheritfs; 
 
 		static auto* const CENTERSM = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->getDataStaticPtr();
 		auto wscentersm = **CENTERSM;
 		if (wslayoutopts.contains("nstack-center_single_master"))
-			wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master"));
+			wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
     wsData->center_single_master = wscentersm;
 }
 
