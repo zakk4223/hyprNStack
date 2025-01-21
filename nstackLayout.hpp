@@ -5,6 +5,9 @@
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/helpers/math/Math.hpp>
+#include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
 #include <vector>
 #include <list>
 #include <deque>
