@@ -228,26 +228,6 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 				return;
 		}
 
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock() // target is group
-        && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock())) {
-
-        m_lMasterNodesData.remove(*PNODE);
-
-        static const auto* USECURRPOS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:insert_after_current");
-        (**USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow.lock()->getGroupTail())->insertWindowToGroup(pWindow);
-
-        OPENINGON->pWindow.lock()->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
-        if(!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-			      pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
-        return;
-    }
-
-    pWindow->applyGroupRules();
-
     bool newWindowIsMaster = false;
     if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster))
       newWindowIsMaster = true;
@@ -702,7 +682,7 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
         *PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
         *PWINDOW->m_vRealSize     = PWINDOW->m_vSize  - (RESERVED.topLeft + RESERVED.bottomRight);
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize->goal());
+        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal());
 
         return;
     }
@@ -729,14 +709,14 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
         *PWINDOW->m_vRealPosition = wb.pos();
         *PWINDOW->m_vRealSize     = wb.size();
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
+        PWINDOW->sendWindowSize( wb.size());
     } else {
 				CBox wb = {calcPos, calcSize};
 				wb.round();
         *PWINDOW->m_vRealSize     = wb.size(); 
         *PWINDOW->m_vRealPosition = wb.pos(); 
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, calcSize);
+        PWINDOW->sendWindowSize(calcSize);
     }
 
     if (m_bForceWarps && !**PANIMATE) {
