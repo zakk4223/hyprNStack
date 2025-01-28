@@ -19,6 +19,7 @@ commit_pins = [
   ["788ae588979c2a1ff8a660f16e3c502ef5796755", "93001f73662c2f0e32dcbabafdbfcbc1bde64c54"],
   ["254fc2bc6000075f660b4b8ed818a6af544d1d64", "93001f73662c2f0e32dcbabafdbfcbc1bde64c54"],
   ["0bd541f2fd902dbfa04c3ea2ccf679395e316887", "93001f73662c2f0e32dcbabafdbfcbc1bde64c54"]
+]
 
 [hyprNStack]
 description = "N-Stack layout"
