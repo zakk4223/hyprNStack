@@ -682,8 +682,6 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
         *PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
         *PWINDOW->m_vRealSize     = PWINDOW->m_vSize  - (RESERVED.topLeft + RESERVED.bottomRight);
 
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal());
-
         return;
     }
 
@@ -709,14 +707,12 @@ void CHyprNstackLayout::applyNodeDataToWindow(SNstackNodeData* pNode) {
         *PWINDOW->m_vRealPosition = wb.pos();
         *PWINDOW->m_vRealSize     = wb.size();
 
-        PWINDOW->sendWindowSize( wb.size());
     } else {
 				CBox wb = {calcPos, calcSize};
 				wb.round();
         *PWINDOW->m_vRealSize     = wb.size(); 
         *PWINDOW->m_vRealPosition = wb.pos(); 
 
-        PWINDOW->sendWindowSize(calcSize);
     }
 
     if (m_bForceWarps && !**PANIMATE) {
