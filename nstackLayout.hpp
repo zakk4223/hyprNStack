@@ -26,22 +26,22 @@ enum eColOrientation : uint8_t {
 };
 
 struct SNstackNodeData {
-    bool     isMaster       = false;
-    bool     masterAdjusted = false;
-    float    percMaster     = 0.5f;
-    int      stackNum       = 0;
+    bool         isMaster       = false;
+    bool         masterAdjusted = false;
+    float        percMaster     = 0.5f;
+    int          stackNum       = 0;
 
     PHLWINDOWREF pWindow;
 
-    Vector2D position;
-    Vector2D size;
+    Vector2D     position;
+    Vector2D     size;
 
-    float    percSize = 1.f; // size multiplier for resizing children
+    float        percSize = 1.f; // size multiplier for resizing children
 
-    int      workspaceID = -1;
-		bool		 ignoreFullscreenChecks = false;
+    int          workspaceID            = -1;
+    bool         ignoreFullscreenChecks = false;
 
-    bool     operator==(const SNstackNodeData& rhs) const {
+    bool         operator==(const SNstackNodeData& rhs) const {
         return pWindow.lock() == rhs.pWindow.lock();
     }
 };
@@ -50,16 +50,16 @@ struct SNstackWorkspaceData {
     int                workspaceID = -1;
     std::vector<float> stackPercs;
     std::vector<int>   stackNodeCount;
-    int                m_iStackCount = 2;
-		bool							 new_on_top = false;
-		bool							 new_is_master = true;
-	  bool               center_single_master = false;
-		bool							 inherit_fullscreen = true;
-		int						 		 no_gaps_when_only = 0;
-		float							 master_factor = 0.0f;
-		float							 single_master_factor = 0.5f;
-		float							 special_scale_factor = 0.8f;
-    eColOrientation    orientation = NSTACK_ORIENTATION_LEFT;
+    int                m_iStackCount        = 2;
+    bool               new_on_top           = false;
+    bool               new_is_master        = true;
+    bool               center_single_master = false;
+    bool               inherit_fullscreen   = true;
+    int                no_gaps_when_only    = 0;
+    float              master_factor        = 0.0f;
+    float              single_master_factor = 0.5f;
+    float              special_scale_factor = 0.8f;
+    eColOrientation    orientation          = NSTACK_ORIENTATION_LEFT;
 
     bool               operator==(const SNstackWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
@@ -78,41 +78,40 @@ class CHyprNstackLayout : public IHyprLayout {
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);
     virtual void                     switchWindows(PHLWINDOW, PHLWINDOW);
-		virtual void										 moveWindowTo(PHLWINDOW, const std::string& dir, bool silent);
+    virtual void                     moveWindowTo(PHLWINDOW, const std::string& dir, bool silent);
     virtual void                     alterSplitRatio(PHLWINDOW, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to);
-    virtual Vector2D 								 predictSizeForNewWindowTiled();
+    virtual Vector2D                 predictSizeForNewWindowTiled();
 
     virtual void                     onEnable();
     virtual void                     onDisable();
-		void 														removeWorkspaceData(const int& ws);
+    void                             removeWorkspaceData(const int& ws);
 
   private:
-    std::list<SNstackNodeData>        m_lMasterNodesData;
+    std::list<SNstackNodeData>      m_lMasterNodesData;
     std::list<SNstackWorkspaceData> m_lMasterWorkspacesData;
 
-    bool                              m_bForceWarps = false;
+    bool                            m_bForceWarps = false;
 
-    void                              buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, CVarList& vars);
-    void                              buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle);
-    void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
-    int                               getNodesOnWorkspace(const int&);
-    void                              applyNodeDataToWindow(SNstackNodeData*);
-    void                              resetNodeSplits(const int&);
-    SNstackNodeData*                  getNodeFromWindow(PHLWINDOW);
-    SNstackNodeData*                  getMasterNodeOnWorkspace(const int&);
-    SNstackWorkspaceData*             getMasterWorkspaceData(const int&);
-    void                              calculateWorkspace(PHLWORKSPACE);
-    PHLWINDOW                          getNextWindow(PHLWINDOW, bool);
-    int                               getMastersOnWorkspace(const int&);
-    bool                              prepareLoseFocus(PHLWINDOW);
-    void                              prepareNewFocus(PHLWINDOW, bool inherit_fullscreen);
+    void                            buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, CVarList& vars);
+    void                            buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle);
+    void                            runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
+    int                             getNodesOnWorkspace(const int&);
+    void                            applyNodeDataToWindow(SNstackNodeData*);
+    void                            resetNodeSplits(const int&);
+    SNstackNodeData*                getNodeFromWindow(PHLWINDOW);
+    SNstackNodeData*                getMasterNodeOnWorkspace(const int&);
+    SNstackWorkspaceData*           getMasterWorkspaceData(const int&);
+    void                            calculateWorkspace(PHLWORKSPACE);
+    PHLWINDOW                       getNextWindow(PHLWINDOW, bool);
+    int                             getMastersOnWorkspace(const int&);
+    bool                            prepareLoseFocus(PHLWINDOW);
+    void                            prepareNewFocus(PHLWINDOW, bool inherit_fullscreen);
 
     friend struct SNstackNodeData;
     friend struct SNstackWorkspaceData;
 };
-
 
 template <typename CharT>
 struct std::formatter<SNstackNodeData*, CharT> : std::formatter<CharT> {

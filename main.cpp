@@ -8,22 +8,20 @@
 // Methods
 inline std::unique_ptr<CHyprNstackLayout> g_pNstackLayout;
 
-static void deleteWorkspaceData(int ws) {
-	if (g_pNstackLayout)
-		g_pNstackLayout->removeWorkspaceData(ws);
+static void                               deleteWorkspaceData(int ws) {
+    if (g_pNstackLayout)
+        g_pNstackLayout->removeWorkspaceData(ws);
 }
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-
-void moveWorkspaceCallback(void *self, SCallbackInfo &cinfo, std::any data) {
-	std::vector<std::any> moveData = std::any_cast<std::vector<std::any>>(data);
-	PHLWORKSPACE ws = std::any_cast<PHLWORKSPACE>(moveData.front());
-	deleteWorkspaceData(ws->m_iID);
+void moveWorkspaceCallback(void* self, SCallbackInfo& cinfo, std::any data) {
+    std::vector<std::any> moveData = std::any_cast<std::vector<std::any>>(data);
+    PHLWORKSPACE          ws       = std::any_cast<PHLWORKSPACE>(moveData.front());
+    deleteWorkspaceData(ws->m_iID);
 }
-
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
@@ -38,15 +36,14 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", Hyprlang::FLOAT{0.5f});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", Hyprlang::FLOAT{0.5f});
-    g_pNstackLayout = std::make_unique<CHyprNstackLayout>();
-		static auto MWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", moveWorkspaceCallback);
+    g_pNstackLayout  = std::make_unique<CHyprNstackLayout>();
+    static auto MWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", moveWorkspaceCallback);
 
-	
-		static auto DWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "destroyWorkspace", [&](void *self, SCallbackInfo &, std::any data) {
-			CWorkspace *ws = std::any_cast<CWorkspace *>(data);
-			deleteWorkspaceData(ws->m_iID);
-		});
-	
+    static auto DWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "destroyWorkspace", [&](void* self, SCallbackInfo&, std::any data) {
+        CWorkspace* ws = std::any_cast<CWorkspace*>(data);
+        deleteWorkspaceData(ws->m_iID);
+    });
+
     HyprlandAPI::addLayout(PHANDLE, "nstack", g_pNstackLayout.get());
 
     HyprlandAPI::reloadConfig();
