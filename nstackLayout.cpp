@@ -299,7 +299,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 }
 
 void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
-    if (pWindow->m_bIsFloating || !validMapped(pWindow))
+    if (!validMapped(pWindow))
         return;
 
     const auto PNODE = getNodeFromWindow(pWindow);
