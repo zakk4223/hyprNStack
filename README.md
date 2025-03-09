@@ -21,6 +21,8 @@ plugin {
       center_single_master=0
       mfact=0.5
       single_mfact=0.5
+      auto_promote=0
+      auto_demote=0
     }
   }
 }
@@ -30,7 +32,9 @@ plugin {
 *  `stacks` The number of *total* stacks, including the master.
 *  `mfact` If this is set to 0 the master is the same size as the stacks. So if there is one master and 2 stacks they are all 1/3rd of the screen width(or height). Master and 3 stacks they are all 1/4th etc.
 *  `single_mfact` The size of a single centered master window, when center_single_master is set.  
-* `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
+*  `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
+*  `auto_promote` After tiled window is created, add extra master if workspace has this many windows.
+*  `auto_demote` After tiled window is destroyed, remove extra master if workspace has less than this many windows.
 
 ### Workspace layout options
 All configuration variables are also usable as workspace rule layout options. Just prefix the setting name with 'nstack-'

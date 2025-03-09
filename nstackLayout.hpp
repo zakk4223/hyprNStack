@@ -60,6 +60,8 @@ struct SNstackWorkspaceData {
     float              single_master_factor = 0.5f;
     float              special_scale_factor = 0.8f;
     eColOrientation    orientation          = NSTACK_ORIENTATION_LEFT;
+    int                auto_promote         = 0;
+    int                auto_demote          = 0;
 
     bool               operator==(const SNstackWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
