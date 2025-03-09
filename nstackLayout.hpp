@@ -25,6 +25,18 @@ enum eColOrientation : uint8_t {
     NSTACK_ORIENTATION_VCENTER,
 };
 
+// order determines how slave windows are filled in
+// e.g. if orientation is left, order would be:
+// ROW:     COLUMN:  RROW:    RCOLUMN:
+// 123      135      321      531
+// 456      246      654      642
+enum eColOrder : uint8_t {
+    NSTACK_ORDER_ROW = 0, // rows first (default)
+    NSTACK_ORDER_COLUMN,  // columns first
+    NSTACK_ORDER_RROW,    // rows first, mirrored
+    NSTACK_ORDER_RCOLUMN, // columns first, mirrored
+};
+
 struct SNstackNodeData {
     bool         isMaster       = false;
     bool         masterAdjusted = false;
@@ -60,6 +72,7 @@ struct SNstackWorkspaceData {
     float              single_master_factor = 0.5f;
     float              special_scale_factor = 0.8f;
     eColOrientation    orientation          = NSTACK_ORIENTATION_LEFT;
+    eColOrder          order                = NSTACK_ORDER_ROW;
     int                auto_promote         = 0;
     int                auto_demote          = 0;
 

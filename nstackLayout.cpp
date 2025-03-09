@@ -5,6 +5,7 @@
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <format>
 #include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
+#include <algorithm>
 
 SNstackNodeData* CHyprNstackLayout::getNodeFromWindow(PHLWINDOW pWindow) {
     for (auto& nd : m_lMasterNodesData) {
@@ -72,6 +73,22 @@ static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
         wsData->orientation = NSTACK_ORIENTATION_VCENTER;
     } else {
         wsData->orientation = NSTACK_ORIENTATION_HCENTER;
+    }
+
+    static auto* const order   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:order")->getDataStaticPtr();
+    std::string        wsorder = *order;
+
+    if (wslayoutopts.contains("nstack-order"))
+        wsorder = wslayoutopts.at("nstack-order");
+    std::string cpporder = wsorder;
+    if (cpporder.starts_with("rr")) {
+        wsData->order = NSTACK_ORDER_RROW;
+    } else if (cpporder.starts_with("rc")) {
+        wsData->order = NSTACK_ORDER_RCOLUMN;
+    } else if (cpporder.starts_with("c")) {
+        wsData->order = NSTACK_ORDER_COLUMN;
+    } else {
+        wsData->order = NSTACK_ORDER_ROW;
     }
 
     static auto* const NUMSTACKS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->getDataStaticPtr();
@@ -384,6 +401,7 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
     const auto      NODECOUNT   = getNodesOnWorkspace(PWORKSPACE->m_id);
 
     eColOrientation orientation = PWORKSPACEDATA->orientation;
+    eColOrder       order       = PWORKSPACEDATA->order;
 
     if (!PMASTERNODE)
         return;
@@ -517,7 +535,7 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
 
     float                 stackNodeSizeLeft = orientation % 2 == 1 ? PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x :
                                                                      PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y;
-    int                   stackNum          = (slavesTotal - slavesLeft) % numStacks;
+    int                   stackNum          = 0;
     std::vector<float>    nodeSpaceLeft(numStacks, stackNodeSizeLeft);
     std::vector<float>    nodeNextCoord(numStacks, 0);
     std::vector<Vector2D> stackCoords(numStacks, Vector2D(0, 0));
@@ -589,6 +607,9 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         stackCoords[i] = Vector2D(stackStart, stackStart + scaledSize);
     }
 
+    if (order > NSTACK_ORDER_COLUMN)
+        std::reverse(stackCoords.begin(), stackCoords.end());
+
     for (auto& nd : m_lMasterNodesData) {
         if (nd.workspaceID != PWORKSPACE->m_id || nd.isMaster)
             continue;
@@ -606,6 +627,13 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         float NODESIZE = slavesLeft > numStacks ? (stackNodeSizeLeft / nodeDiv) * nd.percSize : nodeSpaceLeft[stackNum];
         if (NODESIZE > nodeSpaceLeft[stackNum] * 0.9f && slavesLeft > numStacks)
             NODESIZE = nodeSpaceLeft[stackNum] * 0.9f;
+
+        if (order % 2) {
+            NODESIZE = PWORKSPACEDATA->stackNodeCount[nd.stackNum] < nodeDiv - 1 ? (stackNodeSizeLeft / nodeDiv) * nd.percSize : nodeSpaceLeft[stackNum];
+            if (NODESIZE > nodeSpaceLeft[stackNum] * 0.9f && PWORKSPACEDATA->stackNodeCount[nd.stackNum] < nodeDiv - 1)
+                NODESIZE = nodeSpaceLeft[stackNum] * 0.9f;
+        }
+
         nd.stackNum = stackNum + 1;
         nd.size     = orientation % 2 == 1 ? Vector2D(NODESIZE, stackPos.y - stackPos.x) : Vector2D(stackPos.y - stackPos.x, NODESIZE);
         PWORKSPACEDATA->stackNodeCount[nd.stackNum]++;
@@ -613,6 +641,8 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         nodeSpaceLeft[stackNum] -= NODESIZE;
         nodeNextCoord[stackNum] += NODESIZE;
         stackNum = (slavesTotal - slavesLeft) % numStacks;
+        if (order % 2)
+            stackNum = (slavesTotal - slavesLeft) * numStacks / slavesTotal;
         applyNodeDataToWindow(&nd);
     }
 }

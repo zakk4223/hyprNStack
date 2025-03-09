@@ -23,6 +23,7 @@ plugin {
       single_mfact=0.5
       auto_promote=0
       auto_demote=0
+      order=row
     }
   }
 }
@@ -35,6 +36,7 @@ plugin {
 *  `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
 *  `auto_promote` After tiled window is created, add extra master if workspace has this many windows.
 *  `auto_demote` After tiled window is destroyed, remove extra master if workspace has less than this many windows.
+*  `order` The order slave windows are filled in. (row/column/rrow/rcolumn)
 
 ### Workspace layout options
 All configuration variables are also usable as workspace rule layout options. Just prefix the setting name with 'nstack-'
