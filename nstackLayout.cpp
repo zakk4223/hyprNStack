@@ -231,14 +231,9 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             return;
     }
 
-<<<<<<< HEAD
-    bool newWindowIsMaster = false;
-    if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_firstMap && OPENINGON->isMaster))
-=======
     bool newWindowIsMaster   = false;
     bool newWindowIsPromoted = WORKSPACEDATA->auto_promote > 1 && WINDOWSONWORKSPACE == WORKSPACEDATA->auto_promote;
-    if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster))
->>>>>>> 3309e93 (Add auto promote master option)
+    if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_firstMap && OPENINGON->isMaster))
         newWindowIsMaster = true;
     if (newWindowIsMaster || newWindowIsPromoted) {
         for (auto& nd : m_lMasterNodesData) {
