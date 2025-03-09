@@ -50,58 +50,64 @@ void CHyprNstackLayout::removeWorkspaceData(const int& ws) {
 
 static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
 
-    const auto         wsrule       = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(wsData->workspaceID));
-    const auto         wslayoutopts = wsrule.layoutopts;
+    const auto wsrule       = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(wsData->workspaceID));
+    const auto wslayoutopts = wsrule.layoutopts;
 
-    static auto* const orientation   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
-    std::string        wsorientation = *orientation;
+    if (!wsData->overrides.contains("orientation")) {
+        static auto* const orientation   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
+        std::string        wsorientation = *orientation;
 
-    if (wslayoutopts.contains("nstack-orientation"))
-        wsorientation = wslayoutopts.at("nstack-orientation");
+        if (wslayoutopts.contains("nstack-orientation"))
+            wsorientation = wslayoutopts.at("nstack-orientation");
 
-    std::string cpporientation = wsorientation;
-    //create on the fly if it doesn't exist yet
-    if (cpporientation == "top") {
-        wsData->orientation = NSTACK_ORIENTATION_TOP;
-    } else if (cpporientation == "right") {
-        wsData->orientation = NSTACK_ORIENTATION_RIGHT;
-    } else if (cpporientation == "bottom") {
-        wsData->orientation = NSTACK_ORIENTATION_BOTTOM;
-    } else if (cpporientation == "left") {
-        wsData->orientation = NSTACK_ORIENTATION_LEFT;
-    } else if (cpporientation == "vcenter") {
-        wsData->orientation = NSTACK_ORIENTATION_VCENTER;
-    } else {
-        wsData->orientation = NSTACK_ORIENTATION_HCENTER;
+        std::string cpporientation = wsorientation;
+        //create on the fly if it doesn't exist yet
+        if (cpporientation == "top") {
+            wsData->orientation = NSTACK_ORIENTATION_TOP;
+        } else if (cpporientation == "right") {
+            wsData->orientation = NSTACK_ORIENTATION_RIGHT;
+        } else if (cpporientation == "bottom") {
+            wsData->orientation = NSTACK_ORIENTATION_BOTTOM;
+        } else if (cpporientation == "left") {
+            wsData->orientation = NSTACK_ORIENTATION_LEFT;
+        } else if (cpporientation == "vcenter") {
+            wsData->orientation = NSTACK_ORIENTATION_VCENTER;
+        } else {
+            wsData->orientation = NSTACK_ORIENTATION_HCENTER;
+        }
     }
 
-    static auto* const order   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:order")->getDataStaticPtr();
-    std::string        wsorder = *order;
+    if (!wsData->overrides.contains("order")) {
+        static auto* const order   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:order")->getDataStaticPtr();
+        std::string        wsorder = *order;
 
-    if (wslayoutopts.contains("nstack-order"))
-        wsorder = wslayoutopts.at("nstack-order");
-    std::string cpporder = wsorder;
-    if (cpporder.starts_with("rr")) {
-        wsData->order = NSTACK_ORDER_RROW;
-    } else if (cpporder.starts_with("rc")) {
-        wsData->order = NSTACK_ORDER_RCOLUMN;
-    } else if (cpporder.starts_with("c")) {
-        wsData->order = NSTACK_ORDER_COLUMN;
-    } else {
-        wsData->order = NSTACK_ORDER_ROW;
+        if (wslayoutopts.contains("nstack-order"))
+            wsorder = wslayoutopts.at("nstack-order");
+        std::string cpporder = wsorder;
+        if (cpporder.starts_with("rr")) {
+            wsData->order = NSTACK_ORDER_RROW;
+        } else if (cpporder.starts_with("rc")) {
+            wsData->order = NSTACK_ORDER_RCOLUMN;
+        } else if (cpporder.starts_with("c")) {
+            wsData->order = NSTACK_ORDER_COLUMN;
+        } else {
+            wsData->order = NSTACK_ORDER_ROW;
+        }
     }
 
-    static auto* const NUMSTACKS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->getDataStaticPtr();
-    auto               wsstacks  = **NUMSTACKS;
+    if (!wsData->overrides.contains("stacks")) {
+        static auto* const NUMSTACKS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->getDataStaticPtr();
+        auto               wsstacks  = **NUMSTACKS;
 
-    if (wslayoutopts.contains("nstack-stacks")) {
-        try {
-            std::string stackstr = wslayoutopts.at("nstack-stacks");
-            wsstacks             = std::stol(stackstr);
-        } catch (std::exception& e) { Debug::log(ERR, "Nstack layoutopt invalid rule value for nstack-stacks: {}", e.what()); }
-    }
-    if (wsstacks) {
-        wsData->m_iStackCount = wsstacks;
+        if (wslayoutopts.contains("nstack-stacks")) {
+            try {
+                std::string stackstr = wslayoutopts.at("nstack-stacks");
+                wsstacks             = std::stol(stackstr);
+            } catch (std::exception& e) { Debug::log(ERR, "Nstack layoutopt invalid rule value for nstack-stacks: {}", e.what()); }
+        }
+        if (wsstacks) {
+            wsData->m_iStackCount = wsstacks;
+        }
     }
 
     static auto* const MFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:mfact")->getDataStaticPtr();
@@ -640,9 +646,12 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         slavesLeft--;
         nodeSpaceLeft[stackNum] -= NODESIZE;
         nodeNextCoord[stackNum] += NODESIZE;
-        stackNum = (slavesTotal - slavesLeft) % numStacks;
-        if (order % 2)
-            stackNum = (slavesTotal - slavesLeft) * numStacks / slavesTotal;
+        if (order % 2 == 0)
+            stackNum = (slavesTotal - slavesLeft) % numStacks;
+        else if (slavesLeft < numStacks - stackNum)
+            stackNum = numStacks - slavesLeft;
+        else if (nodeSpaceLeft[stackNum] < 1 && stackNum < numStacks - 1)
+            stackNum++;
         applyNodeDataToWindow(&nd);
     }
 }
@@ -1040,6 +1049,16 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         g_pInputManager->m_forcedFocus.reset();
     };
 
+    auto refreshWindows = [&](PHLWINDOW ORIGINALWINDOW) {
+        // TODO: this is probably a dumb way to force update window sizes, but the bastards refuse the update without interaction
+        for (auto& n : m_lMasterNodesData) {
+            if (n.workspaceID == header.pWindow->workspaceID() && !n.isMaster && !n.pWindow->m_bIsFloating) {
+                switchToWindow(n.pWindow.lock());
+            }
+        }
+        switchToWindow(ORIGINALWINDOW);
+    };
+
     CVarList vars(message, 0, ' ');
 
     if (vars.size() < 1 || vars[0].empty()) {
@@ -1219,6 +1238,19 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         }
 
         recalculateMonitor(header.pWindow->monitorID());
+    } else if (command == "togglemaster") {
+        if (!validMapped(header.pWindow))
+            return 0;
+
+        if (header.pWindow->m_bIsFloating)
+            return 0;
+
+        const auto PNODE   = getNodeFromWindow(header.pWindow);
+        const auto MASTERS = getMastersOnWorkspace(header.pWindow->workspaceID());
+
+        if (PNODE && (!PNODE->isMaster || MASTERS > 1))
+            PNODE->isMaster ^= true;
+        recalculateMonitor(header.pWindow->monitorID());
     } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom" || command == "orientationcenter" ||
                command == "orientationhcenter" || command == "orientationvcenter") {
         const auto PWINDOW = header.pWindow;
@@ -1241,19 +1273,44 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         else if (command == "orientationvcenter")
             PWORKSPACEDATA->orientation = NSTACK_ORIENTATION_VCENTER;
 
+        PWORKSPACEDATA->overrides.emplace("orientation");
         recalculateMonitor(header.pWindow->monitorID());
 
     } else if (command == "orientationnext") {
+        const auto PWINDOW = header.pWindow;
+        if (!PWINDOW)
+            return 0;
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+        PWORKSPACEDATA->overrides.emplace("orientation");
         runOrientationCycle(header, nullptr, 1);
     } else if (command == "orientationprev") {
+        const auto PWINDOW = header.pWindow;
+        if (!PWINDOW)
+            return 0;
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+        PWORKSPACEDATA->overrides.emplace("orientation");
         runOrientationCycle(header, nullptr, -1);
     } else if (command == "orientationcycle") {
+        const auto PWINDOW = header.pWindow;
+        if (!PWINDOW)
+            return 0;
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+        PWORKSPACEDATA->overrides.emplace("orientation");
         runOrientationCycle(header, &vars, 1);
     } else if (command == "resetsplits") {
         const auto PWINDOW = header.pWindow;
         if (!PWINDOW)
             return 0;
         resetNodeSplits(PWINDOW->workspaceID());
+    } else if (command == "resetoverrides") {
+        const auto PWINDOW = header.pWindow;
+        if (!PWINDOW)
+            return 0;
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+        if (!PWORKSPACEDATA)
+            return 0;
+        PWORKSPACEDATA->overrides.clear();
+        recalculateMonitor(PWINDOW->monitorID());
     } else if (command == "setstackcount") {
         const auto PWINDOW = header.pWindow;
         if (!PWINDOW)
@@ -1273,9 +1330,34 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
                 if (newStackCount < 2)
                     newStackCount = 2;
                 PWORKSPACEDATA->m_iStackCount = newStackCount;
+                PWORKSPACEDATA->overrides.emplace("stacks");
                 recalculateMonitor(PWINDOW->monitorID());
+                refreshWindows(PWINDOW);
             }
         }
+    } else if (command.starts_with("order")) {
+        const auto PWINDOW = header.pWindow;
+        if (!PWINDOW)
+            return 0;
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
+        if (!PWORKSPACEDATA)
+            return 0;
+        if (command == "orderrow")
+            PWORKSPACEDATA->order = NSTACK_ORDER_ROW;
+        else if (command == "ordercolumn")
+            PWORKSPACEDATA->order = NSTACK_ORDER_COLUMN;
+        else if (command == "orderrrow")
+            PWORKSPACEDATA->order = NSTACK_ORDER_RROW;
+        else if (command == "orderrcolumn")
+            PWORKSPACEDATA->order = NSTACK_ORDER_RCOLUMN;
+        else if (command == "ordernext")
+            PWORKSPACEDATA->order = (eColOrder)(((int)PWORKSPACEDATA->order + 1) % 4);
+        else if (command == "orderprev")
+            PWORKSPACEDATA->order = (eColOrder)(((int)PWORKSPACEDATA->order + 3) % 4);
+
+        PWORKSPACEDATA->overrides.emplace("order");
+        recalculateMonitor(PWINDOW->monitorID());
+        refreshWindows(PWINDOW);
     }
 
     return 0;

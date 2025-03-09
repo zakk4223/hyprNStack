@@ -40,19 +40,28 @@ plugin {
 
 ### Workspace layout options
 All configuration variables are also usable as workspace rule layout options. Just prefix the setting name with 'nstack-'
-`workspace=2,layoutopt:nstack-stacks:2,layoutopt:nstack-single_mfact:0.85`
+
+ * `workspace = 2,layoutopt:nstack-stacks:2,layoutopt:nstack-single_mfact:0.85`
+ * `workspace = w[tv1-3],layoutopt:nstack-stacks:2,layoutopt:nstack-mfact:0.6667`
+ * `workspace = w[tv4-20],layoutopt:nstack-stacks:3,layoutopt:nstack-mfact:0,layoutopt:nstack-auto_promote:8,layoutopt:nstack-auto_demote:6`
 
 # Dispatchers
 
-Two new dispatchers
+New dispatchers
  * `resetsplits` Reset all the window splits to default sizes.
+ * `resetoverrides` Reset all stacks/orientation/order set with layoutmsgs to config defaults.
  * `setstackcount` Change the number of stacks for the current workspace. Windows will be re-tiled to fit the new stack count.
+ * `togglemaster` Remove master if window is master, otherwise add master.
+ * `orderrow` `ordercolumn` `orderrrow` `orderrcolumn` `ordernext` `orderprev`
 
 Two new-ish orientations
  * `orientationhcenter` Master is horizontally centered with stacks to the left and right. 
  * `orientationvcenter` Master is vertically centered with stacks on the top and bottom. 
  * `orientationcenter` An alias for `orientationhcenter`
- 
+
+Dispatchers can be used through `layoutmsg`:
+ * `bind = SUPER, Z, layoutmsg, orientationcycle left right`
+ * `hyprctl dispatch layoutmsg ordernext`
 
 # Installing
 
