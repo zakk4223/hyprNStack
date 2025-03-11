@@ -131,6 +131,17 @@ static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
     }
     wsData->single_master_factor = wssmfact;
 
+    static auto* const XFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:xfact")->getDataStaticPtr();
+    auto               wsxfact = **XFACT;
+
+    if (wslayoutopts.contains("nstack-xfact")) {
+        std::string xfactstr = wslayoutopts.at("nstack-xfact");
+        try {
+            wsxfact = std::stof(xfactstr);
+        } catch (std::exception& e) { Debug::log(ERR, "Nstack layoutopt nstack-xfact format error: {}", e.what()); }
+    }
+    wsData->x_factor = wsxfact;
+
     static auto* const SSFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor")->getDataStaticPtr();
     auto               wsssfact = **SSFACT;
     if (wslayoutopts.contains("nstack-special_scale_factor")) {
@@ -439,7 +450,15 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
 
     auto MCONTAINERPOS  = Vector2D(0.0f, 0.0f);
     auto MCONTAINERSIZE = Vector2D(0.0f, 0.0f);
-
+    auto MARGIN         = Vector2D(0.0f, 0.0f);
+    auto TOPLEFT        = PMONITOR->m_reservedTopLeft;
+    auto BOTTOMRIGHT    = PMONITOR->m_reservedBottomRight;
+    if (PWORKSPACEDATA->x_factor > 0.0f && PWORKSPACEDATA->x_factor < 1.0f) {
+        MARGIN = Vector2D(orientation % 2 == 0 ? (1.0f - PWORKSPACEDATA->x_factor) * PMONITOR->m_size.x / 2.f : 0.0f,
+                          orientation % 2 == 1 ? (1.0f - PWORKSPACEDATA->x_factor) * PMONITOR->m_size.y / 2.f : 0.0f);
+        TOPLEFT += MARGIN;
+        BOTTOMRIGHT += MARGIN;
+    }
     if (ONLYMASTERS) {
         if (centerMasterWindow) {
 
@@ -447,48 +466,45 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
                 PMASTERNODE->percMaster = PWORKSPACEDATA->single_master_factor ? PWORKSPACEDATA->single_master_factor : 0.5f;
 
             if (orientation == NSTACK_ORIENTATION_TOP || orientation == NSTACK_ORIENTATION_BOTTOM) {
-                const float HEIGHT        = (PMONITOR->m_size.y - PMONITOR->m_reservedTopLeft.y - PMONITOR->m_reservedBottomRight.y) * PMASTERNODE->percMaster;
+                const float HEIGHT        = (PMONITOR->m_size.y - TOPLEFT.y - BOTTOMRIGHT.y) * PMASTERNODE->percMaster;
                 float       CENTER_OFFSET = (PMONITOR->m_size.y - HEIGHT) / 2;
-                MCONTAINERSIZE            = Vector2D(PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x, HEIGHT);
-                MCONTAINERPOS             = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(0.0, CENTER_OFFSET);
+                MCONTAINERSIZE            = Vector2D(PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x, HEIGHT);
+                MCONTAINERPOS             = TOPLEFT + PMONITOR->m_position + Vector2D(0.0, CENTER_OFFSET);
             } else {
-                const float WIDTH         = (PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x) * PMASTERNODE->percMaster;
+                const float WIDTH         = (PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x) * PMASTERNODE->percMaster;
                 float       CENTER_OFFSET = (PMONITOR->m_size.x - WIDTH) / 2;
-                MCONTAINERSIZE            = Vector2D(WIDTH, PMONITOR->m_size.y - PMONITOR->m_reservedTopLeft.y - PMONITOR->m_reservedBottomRight.y);
-                MCONTAINERPOS             = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(CENTER_OFFSET, 0.0);
+                MCONTAINERSIZE            = Vector2D(WIDTH, PMONITOR->m_size.y - TOPLEFT.y - BOTTOMRIGHT.y);
+                MCONTAINERPOS             = TOPLEFT + PMONITOR->m_position + Vector2D(CENTER_OFFSET, 0.0);
             }
         } else {
-            MCONTAINERPOS  = PMONITOR->m_reservedTopLeft + PMONITOR->m_position;
-            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x,
-                                      PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y);
+            MCONTAINERPOS  = TOPLEFT + PMONITOR->m_position;
+            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x, PMONITOR->m_size.y - BOTTOMRIGHT.y - TOPLEFT.y);
         }
     } else {
-        const float MASTERSIZE = orientation % 2 == 0 ? (PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x) * PMASTERNODE->percMaster :
-                                                        (PMONITOR->m_size.y - PMONITOR->m_reservedTopLeft.y - PMONITOR->m_reservedBottomRight.y) * PMASTERNODE->percMaster;
+        const float MASTERSIZE = orientation % 2 == 0 ? (PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x) * PMASTERNODE->percMaster :
+                                                        (PMONITOR->m_size.y - TOPLEFT.y - BOTTOMRIGHT.y) * PMASTERNODE->percMaster;
 
         if (orientation == NSTACK_ORIENTATION_RIGHT) {
-            MCONTAINERPOS = PMONITOR->m_reservedTopLeft + PMONITOR->m_position +
-                Vector2D(PMONITOR->m_size.x - MASTERSIZE - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x, 0.0f);
-            MCONTAINERSIZE = Vector2D(MASTERSIZE, PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y);
+            MCONTAINERPOS  = TOPLEFT + PMONITOR->m_position + Vector2D(PMONITOR->m_size.x - MASTERSIZE - BOTTOMRIGHT.x - TOPLEFT.x, 0.0f);
+            MCONTAINERSIZE = Vector2D(MASTERSIZE, PMONITOR->m_size.y - BOTTOMRIGHT.y - TOPLEFT.y);
         } else if (orientation == NSTACK_ORIENTATION_LEFT) {
-            MCONTAINERPOS  = PMONITOR->m_reservedTopLeft + PMONITOR->m_position;
-            MCONTAINERSIZE = Vector2D(MASTERSIZE, PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y);
+            MCONTAINERPOS  = TOPLEFT + PMONITOR->m_position;
+            MCONTAINERSIZE = Vector2D(MASTERSIZE, PMONITOR->m_size.y - BOTTOMRIGHT.y - TOPLEFT.y);
         } else if (orientation == NSTACK_ORIENTATION_TOP) {
-            MCONTAINERPOS  = PMONITOR->m_reservedTopLeft + PMONITOR->m_position;
-            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x, MASTERSIZE);
+            MCONTAINERPOS  = TOPLEFT + PMONITOR->m_position;
+            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - BOTTOMRIGHT.x - TOPLEFT.x, MASTERSIZE);
         } else if (orientation == NSTACK_ORIENTATION_BOTTOM) {
-            MCONTAINERPOS = PMONITOR->m_reservedTopLeft + PMONITOR->m_position +
-                Vector2D(0.0f, PMONITOR->m_size.y - MASTERSIZE - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y);
-            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x, MASTERSIZE);
+            MCONTAINERPOS  = TOPLEFT + PMONITOR->m_position + Vector2D(0.0f, PMONITOR->m_size.y - MASTERSIZE - BOTTOMRIGHT.y - TOPLEFT.y);
+            MCONTAINERSIZE = Vector2D(PMONITOR->m_size.x - BOTTOMRIGHT.x - TOPLEFT.x, MASTERSIZE);
 
         } else if (orientation == NSTACK_ORIENTATION_HCENTER) {
-            float CENTER_OFFSET = (PMONITOR->m_size.x - MASTERSIZE) / 2;
-            MCONTAINERSIZE      = Vector2D(MASTERSIZE, PMONITOR->m_size.y - PMONITOR->m_reservedTopLeft.y - PMONITOR->m_reservedBottomRight.y);
-            MCONTAINERPOS       = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(CENTER_OFFSET, 0.0);
+            float CENTER_OFFSET = (PMONITOR->m_size.x - MASTERSIZE - 2.f * MARGIN.x) / 2;
+            MCONTAINERSIZE      = Vector2D(MASTERSIZE, PMONITOR->m_size.y - TOPLEFT.y - BOTTOMRIGHT.y);
+            MCONTAINERPOS       = TOPLEFT + PMONITOR->m_position + Vector2D(CENTER_OFFSET, 0.0);
         } else if (orientation == NSTACK_ORIENTATION_VCENTER) {
-            float CENTER_OFFSET = (PMONITOR->m_size.y - MASTERSIZE) / 2;
-            MCONTAINERSIZE      = Vector2D(PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x, MASTERSIZE);
-            MCONTAINERPOS       = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(0.0, CENTER_OFFSET);
+            float CENTER_OFFSET = (PMONITOR->m_size.y - MASTERSIZE - 2.f * MARGIN.y) / 2;
+            MCONTAINERSIZE      = Vector2D(PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x, MASTERSIZE);
+            MCONTAINERPOS       = TOPLEFT + PMONITOR->m_position + Vector2D(0.0, CENTER_OFFSET);
         }
     }
 
@@ -539,18 +555,18 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
     PWORKSPACEDATA->stackNodeCount.assign(numStacks + 1, 0);
     PWORKSPACEDATA->stackPercs.resize(numStacks + 1, 1.0f);
 
-    float                 stackNodeSizeLeft = orientation % 2 == 1 ? PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x :
-                                                                     PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y;
-    int                   stackNum          = 0;
+    float                 stackNodeSizeLeft = orientation % 2 == 1 ? PMONITOR->m_size.x - BOTTOMRIGHT.x - TOPLEFT.x : PMONITOR->m_size.y - BOTTOMRIGHT.y - TOPLEFT.y;
+
+    int                   stackNum = 0;
     std::vector<float>    nodeSpaceLeft(numStacks, stackNodeSizeLeft);
     std::vector<float>    nodeNextCoord(numStacks, 0);
     std::vector<Vector2D> stackCoords(numStacks, Vector2D(0, 0));
 
-    const float STACKSIZE = orientation % 2 == 1 ? (PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PMONITOR->m_reservedTopLeft.y - PMASTERNODE->size.y) / numStacks :
-                                                   (PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PMONITOR->m_reservedTopLeft.x - PMASTERNODE->size.x) / numStacks;
+    const float           STACKSIZE = orientation % 2 == 1 ? (PMONITOR->m_size.y - BOTTOMRIGHT.y - TOPLEFT.y - PMASTERNODE->size.y) / numStacks :
+                                                             (PMONITOR->m_size.x - BOTTOMRIGHT.x - TOPLEFT.x - PMASTERNODE->size.x) / numStacks;
 
-    const float STACKSIZEBEFORE = numStackBefore ? ((STACKSIZE * numStacks) / 2) / numStackBefore : 0.0f;
-    const float STACKSIZEAFTER  = numStackAfter ? ((STACKSIZE * numStacks) / 2) / numStackAfter : 0.0f;
+    const float           STACKSIZEBEFORE = numStackBefore ? ((STACKSIZE * numStacks) / 2) / numStackBefore : 0.0f;
+    const float           STACKSIZEAFTER  = numStackAfter ? ((STACKSIZE * numStacks) / 2) / numStackAfter : 0.0f;
 
     //Pre calculate each stack's coordinates so we can take into account manual resizing
     if (orientation == NSTACK_ORIENTATION_LEFT || orientation == NSTACK_ORIENTATION_TOP) {
@@ -573,11 +589,10 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         //The Vector here isn't 'x,y', it is 'stack start, stack end'
         double coordAdjust = 0;
         if (i == numStackBefore && numStackAfter) {
-            coordAdjust = orientation % 2 == 1 ? PMASTERNODE->position.y + PMASTERNODE->size.y - PMONITOR->m_position.y - PMONITOR->m_reservedTopLeft.y :
-                                                 PMASTERNODE->position.x + PMASTERNODE->size.x - PMONITOR->m_position.x - PMONITOR->m_reservedTopLeft.x;
+            coordAdjust = orientation % 2 == 1 ? PMASTERNODE->position.y + PMASTERNODE->size.y - PMONITOR->m_position.y - TOPLEFT.y :
+                                                 PMASTERNODE->position.x + PMASTERNODE->size.x - PMONITOR->m_position.x - TOPLEFT.x;
         }
-        float monMax     = orientation % 2 == 1 ? PMONITOR->m_size.y - PMONITOR->m_reservedTopLeft.y - PMONITOR->m_reservedBottomRight.y :
-                                                  PMONITOR->m_size.x - PMONITOR->m_reservedTopLeft.x - PMONITOR->m_reservedBottomRight.x;
+        float monMax     = orientation % 2 == 1 ? PMONITOR->m_size.y - TOPLEFT.y - BOTTOMRIGHT.y : PMONITOR->m_size.x - TOPLEFT.x - BOTTOMRIGHT.x;
         float stackStart = 0.0f;
         if (i == numStackBefore && numStackAfter) {
             stackStart = coordAdjust;
@@ -592,22 +607,22 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         if (orientation == NSTACK_ORIENTATION_LEFT && i >= numStacks - 1) {
             scaledSize = monMax - stackStart;
         } else if (orientation == NSTACK_ORIENTATION_RIGHT && i >= numStacks - 1) {
-            scaledSize = (PMASTERNODE->position.x - PMONITOR->m_position.x - PMONITOR->m_reservedTopLeft.x) - stackStart;
+            scaledSize = (PMASTERNODE->position.x - PMONITOR->m_position.x - TOPLEFT.x) - stackStart;
         } else if (orientation == NSTACK_ORIENTATION_TOP && i >= numStacks - 1) {
             scaledSize = monMax - stackStart;
         } else if (orientation == NSTACK_ORIENTATION_BOTTOM && i >= numStacks - 1) {
-            scaledSize = (PMASTERNODE->position.y - PMONITOR->m_position.y - PMONITOR->m_reservedTopLeft.y) - stackStart;
+            scaledSize = (PMASTERNODE->position.y - PMONITOR->m_position.y - TOPLEFT.y) - stackStart;
         } else if (orientation == NSTACK_ORIENTATION_HCENTER) {
             if (i >= numStacks - 1) {
                 scaledSize = monMax - stackStart;
             } else if (i == numStacks - 2) {
-                scaledSize = (PMASTERNODE->position.x - PMONITOR->m_position.x - PMONITOR->m_reservedTopLeft.x) - stackStart;
+                scaledSize = (PMASTERNODE->position.x - PMONITOR->m_position.x - TOPLEFT.x) - stackStart;
             }
         } else if (orientation == NSTACK_ORIENTATION_VCENTER) {
             if (i >= numStacks - 1) {
                 scaledSize = monMax - stackStart;
             } else if (i == numStacks - 2) {
-                scaledSize = (PMASTERNODE->position.y - PMONITOR->m_position.y - PMONITOR->m_reservedTopLeft.y) - stackStart;
+                scaledSize = (PMASTERNODE->position.y - PMONITOR->m_position.y - TOPLEFT.y) - stackStart;
             }
         }
         stackCoords[i] = Vector2D(stackStart, stackStart + scaledSize);
@@ -622,9 +637,9 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
 
         Vector2D stackPos = stackCoords[stackNum];
         if (orientation % 2 == 0) {
-            nd.position = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(stackPos.x, nodeNextCoord[stackNum]);
+            nd.position = TOPLEFT + PMONITOR->m_position + Vector2D(stackPos.x, nodeNextCoord[stackNum]);
         } else {
-            nd.position = PMONITOR->m_reservedTopLeft + PMONITOR->m_position + Vector2D(nodeNextCoord[stackNum], stackPos.x);
+            nd.position = TOPLEFT + PMONITOR->m_position + Vector2D(nodeNextCoord[stackNum], stackPos.x);
         }
 
         int nodeDiv = slavesTotal / numStacks;
