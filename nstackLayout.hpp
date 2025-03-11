@@ -70,6 +70,7 @@ struct SNstackWorkspaceData {
     int                   no_gaps_when_only    = 0;
     float                 master_factor        = 0.0f;
     float                 single_master_factor = 0.5f;
+    float                 x_factor             = 0.0f;
     float                 special_scale_factor = 0.8f;
     eColOrientation       orientation          = NSTACK_ORIENTATION_LEFT;
     eColOrder             order                = NSTACK_ORDER_ROW;
