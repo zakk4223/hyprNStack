@@ -21,6 +21,10 @@ plugin {
       center_single_master=0
       mfact=0.5
       single_mfact=0.5
+      auto_promote=0
+      auto_demote=0
+      order=row
+      xfact=0.0
     }
   }
 }
@@ -29,24 +33,40 @@ plugin {
 ### Configuration variable differences in comparison to Master Layout
 *  `stacks` The number of *total* stacks, including the master.
 *  `mfact` If this is set to 0 the master is the same size as the stacks. So if there is one master and 2 stacks they are all 1/3rd of the screen width(or height). Master and 3 stacks they are all 1/4th etc.
-*  `single_mfact` The size of a single centered master window, when center_single_master is set.  
-* `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
+*  `single_mfact` The size of a single centered master window, when center_single_master is set.
+*  `center_single_master` When there is a single window on the screen it is centered instead of taking up the entire monitor. This replaces the existing `always_center_master` and has slightly different behavior.
+*  `auto_promote` After tiled window is created, add extra master if workspace has this many windows.
+*  `auto_demote` After tiled window is destroyed, remove extra master if workspace has less than this many windows.
+*  `order` The order slave windows are filled in. (row/column/rrow/rcolumn)
+*  `xfact` X-factor, mfact for the whole layout, add extra margins to center any number of stacks using workspace rules (see below). Generic replacement for single\* options.
 
 ### Workspace layout options
 All configuration variables are also usable as workspace rule layout options. Just prefix the setting name with 'nstack-'
-`workspace=2,layoutopt:nstack-stacks:2,layoutopt:nstack-single_mfact:0.85`
+
+```conf
+# center single master and two stacks using 2/3 of screen when 1-3 windows are open
+workspace = w[tv1-3],layoutopt:nstack-stacks:2,layoutopt:nstack-xfact:0.6667
+# add third stack when 4th window opened and fill whole screen, auto split master when 8th window opened etc
+workspace = w[tv4-20],layoutopt:nstack-stacks:3,layoutopt:nstack-auto_promote:8,layoutopt:nstack-auto_demote:6
+```
 
 # Dispatchers
 
-Two new dispatchers
+New dispatchers
  * `resetsplits` Reset all the window splits to default sizes.
+ * `resetoverrides` Reset all stacks/orientation/order set with layoutmsgs to config defaults.
  * `setstackcount` Change the number of stacks for the current workspace. Windows will be re-tiled to fit the new stack count.
+ * `togglemaster` Remove master if window is master, otherwise add master.
+ * `orderrow` `ordercolumn` `orderrrow` `orderrcolumn` `ordernext` `orderprev`
 
 Two new-ish orientations
  * `orientationhcenter` Master is horizontally centered with stacks to the left and right. 
  * `orientationvcenter` Master is vertically centered with stacks on the top and bottom. 
  * `orientationcenter` An alias for `orientationhcenter`
- 
+
+Dispatchers can be used through `layoutmsg`:
+ * `bind = SUPER, Z, layoutmsg, orientationcycle left right`
+ * `hyprctl dispatch layoutmsg ordernext`
 
 # Installing
 
