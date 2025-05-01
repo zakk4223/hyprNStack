@@ -21,7 +21,7 @@ static void deleteWorkspaceData(int ws) {
 void moveWorkspaceCallback(void* self, SCallbackInfo& cinfo, std::any data) {
     std::vector<std::any> moveData = std::any_cast<std::vector<std::any>>(data);
     PHLWORKSPACE          ws       = std::any_cast<PHLWORKSPACE>(moveData.front());
-    deleteWorkspaceData(ws->m_id);
+    deleteWorkspaceData(ws->m_iID);
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -42,7 +42,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     static auto DWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "destroyWorkspace", [&](void* self, SCallbackInfo&, std::any data) {
         CWorkspace* ws = std::any_cast<CWorkspace*>(data);
-        deleteWorkspaceData(ws->m_id);
+        deleteWorkspaceData(ws->m_iID);
     });
 
     HyprlandAPI::addLayout(PHANDLE, "nstack", g_pNstackLayout.get());
