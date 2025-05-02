@@ -214,7 +214,7 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     float      lastSplitPercent   = 0.5f;
     bool       lastMasterAdjusted = false;
 
-    if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
+    if (g_pInputManager->m_wasDraggingWindow && OPENINGON) {
         if (OPENINGON->pWindow.lock()->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
             return;
     }
@@ -983,9 +983,9 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
             g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
         }
-        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+        g_pInputManager->m_forcedFocus = PWINDOWTOCHANGETO;
         g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        g_pInputManager->m_forcedFocus.reset();
     };
 
     CVarList vars(message, 0, ' ');
@@ -1090,7 +1090,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
 
         if (header.pWindow->m_isFloating) {
-            g_pKeybindManager->m_mDispatchers["swapnext"]("");
+            g_pKeybindManager->m_dispatchers["swapnext"]("");
             return 0;
         }
 
@@ -1105,7 +1105,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
 
         if (header.pWindow->m_isFloating) {
-            g_pKeybindManager->m_mDispatchers["swapnext"]("prev");
+            g_pKeybindManager->m_dispatchers["swapnext"]("prev");
             return 0;
         }
 
