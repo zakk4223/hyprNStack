@@ -649,7 +649,7 @@ void CHyprNstackLayout::calculateWorkspace(PHLWORKSPACE PWORKSPACE) {
         if (NODESIZE > nodeSpaceLeft[stackNum] * 0.9f && slavesLeft > numStacks)
             NODESIZE = nodeSpaceLeft[stackNum] * 0.9f;
 
-        if (order % 2) {
+        if (order % 2 && PWORKSPACEDATA->stackNodeCount.size() > nd.stackNum) {
             NODESIZE = PWORKSPACEDATA->stackNodeCount[nd.stackNum] < nodeDiv - 1 ? (stackNodeSizeLeft / nodeDiv) * nd.percSize : nodeSpaceLeft[stackNum];
             if (NODESIZE > nodeSpaceLeft[stackNum] * 0.9f && PWORKSPACEDATA->stackNodeCount[nd.stackNum] < nodeDiv - 1)
                 NODESIZE = nodeSpaceLeft[stackNum] * 0.9f;
@@ -1067,7 +1067,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     auto refreshWindows = [&](PHLWINDOW ORIGINALWINDOW) {
         // TODO: this is probably a dumb way to force update window sizes, but the bastards refuse the update without interaction
         for (auto& n : m_lMasterNodesData) {
-            if (n.workspaceID == header.pWindow->workspaceID() && !n.isMaster && !n.pWindow->m_bIsFloating) {
+            if (n.workspaceID == header.pWindow->workspaceID() && !n.isMaster && !n.pWindow->m_isFloating) {
                 switchToWindow(n.pWindow.lock());
             }
         }
@@ -1257,7 +1257,7 @@ std::any CHyprNstackLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!validMapped(header.pWindow))
             return 0;
 
-        if (header.pWindow->m_bIsFloating)
+        if (header.pWindow->m_isFloating)
             return 0;
 
         const auto PNODE   = getNodeFromWindow(header.pWindow);
