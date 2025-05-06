@@ -37,6 +37,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:mfact", Hyprlang::FLOAT{0.5f});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact", Hyprlang::FLOAT{0.5f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:auto_promote", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:nstack:layout:auto_demote", Hyprlang::INT{1});
     g_pNstackLayout  = std::make_unique<CHyprNstackLayout>();
     static auto MWCB = HyprlandAPI::registerCallbackDynamic(PHANDLE, "moveWorkspace", moveWorkspaceCallback);
 

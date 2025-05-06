@@ -147,6 +147,18 @@ static void applyWorkspaceLayoutOptions(SNstackWorkspaceData* wsData) {
     if (wslayoutopts.contains("nstack-center_single_master"))
         wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
     wsData->center_single_master = wscentersm;
+
+    static auto* const PROMOTE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:auto_promote")->getDataStaticPtr();
+    auto               wspromote = **PROMOTE;
+    if (wslayoutopts.contains("nstack-auto_promote"))
+        wspromote = configStringToInt(wslayoutopts.at("nstack-auto_promote")).value_or(0);
+    wsData->auto_promote = wspromote;
+
+    static auto* const DEMOTE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:auto_demote")->getDataStaticPtr();
+    auto               wsdemote = **DEMOTE;
+    if (wslayoutopts.contains("nstack-auto_demote"))
+        wsdemote = configStringToInt(wslayoutopts.at("nstack-auto_demote")).value_or(0);
+    wsData->auto_demote = wsdemote;
 }
 
 SNstackWorkspaceData* CHyprNstackLayout::getMasterWorkspaceData(const int& ws) {
@@ -219,13 +231,19 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             return;
     }
 
+<<<<<<< HEAD
     bool newWindowIsMaster = false;
     if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_firstMap && OPENINGON->isMaster))
+=======
+    bool newWindowIsMaster   = false;
+    bool newWindowIsPromoted = WORKSPACEDATA->auto_promote > 1 && WINDOWSONWORKSPACE == WORKSPACEDATA->auto_promote;
+    if (WORKSPACEDATA->new_is_master || WINDOWSONWORKSPACE == 1 || (!pWindow->m_bFirstMap && OPENINGON->isMaster))
+>>>>>>> 3309e93 (Add auto promote master option)
         newWindowIsMaster = true;
-    if (newWindowIsMaster) {
+    if (newWindowIsMaster || newWindowIsPromoted) {
         for (auto& nd : m_lMasterNodesData) {
             if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
-                nd.isMaster        = false;
+                nd.isMaster        = newWindowIsPromoted;
                 lastSplitPercent   = nd.percMaster;
                 lastMasterAdjusted = nd.masterAdjusted;
                 break;
@@ -263,7 +281,14 @@ void CHyprNstackLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 }
 
 void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
+    if (pWindow->m_bIsFloating || !validMapped(pWindow))
+        return;
+
     const auto PNODE = getNodeFromWindow(pWindow);
+
+    const auto WSID = pWindow->workspaceID();
+
+    const auto WORKSPACEDATA = getMasterWorkspaceData(WSID);
 
     if (!PNODE)
         return;
@@ -292,7 +317,9 @@ void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     m_lMasterNodesData.remove(*PNODE);
 
-    if (getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) && MASTERSLEFT > 1) {
+    const auto WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
+
+    if ((getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) || WINDOWSONWORKSPACE < WORKSPACEDATA->auto_demote) && MASTERSLEFT > 1) {
         for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
             if (it->workspaceID == WORKSPACEID) {
                 it->isMaster = false;
