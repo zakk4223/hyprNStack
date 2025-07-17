@@ -25,6 +25,18 @@ enum eColOrientation : uint8_t {
     NSTACK_ORIENTATION_VCENTER,
 };
 
+// order determines how slave windows are filled in
+// e.g. if orientation is left, order would be:
+// ROW:     COLUMN:  RROW:    RCOLUMN:
+// 123      135      321      531
+// 456      246      654      642
+enum eColOrder : uint8_t {
+    NSTACK_ORDER_ROW = 0, // rows first (default)
+    NSTACK_ORDER_COLUMN,  // columns first
+    NSTACK_ORDER_RROW,    // rows first, mirrored
+    NSTACK_ORDER_RCOLUMN, // columns first, mirrored
+};
+
 struct SNstackNodeData {
     bool         isMaster       = false;
     bool         masterAdjusted = false;
@@ -47,21 +59,26 @@ struct SNstackNodeData {
 };
 
 struct SNstackWorkspaceData {
-    int                workspaceID = -1;
-    std::vector<float> stackPercs;
-    std::vector<int>   stackNodeCount;
-    int                m_iStackCount        = 2;
-    bool               new_on_top           = false;
-    bool               new_is_master        = true;
-    bool               center_single_master = false;
-    bool               inherit_fullscreen   = true;
-    int                no_gaps_when_only    = 0;
-    float              master_factor        = 0.0f;
-    float              single_master_factor = 0.5f;
-    float              special_scale_factor = 0.8f;
-    eColOrientation    orientation          = NSTACK_ORIENTATION_LEFT;
+    int                   workspaceID = -1;
+    std::vector<float>    stackPercs;
+    std::vector<int>      stackNodeCount;
+    int                   m_iStackCount        = 2;
+    bool                  new_on_top           = false;
+    bool                  new_is_master        = true;
+    bool                  center_single_master = false;
+    bool                  inherit_fullscreen   = true;
+    int                   no_gaps_when_only    = 0;
+    float                 master_factor        = 0.0f;
+    float                 single_master_factor = 0.5f;
+    float                 x_factor             = 0.0f;
+    float                 special_scale_factor = 0.8f;
+    eColOrientation       orientation          = NSTACK_ORIENTATION_LEFT;
+    eColOrder             order                = NSTACK_ORDER_ROW;
+    int                   auto_promote         = 0;
+    int                   auto_demote          = 0;
+    std::set<std::string> overrides;
 
-    bool               operator==(const SNstackWorkspaceData& rhs) const {
+    bool                  operator==(const SNstackWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
     }
 };
