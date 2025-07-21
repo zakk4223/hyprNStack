@@ -348,7 +348,7 @@ void CHyprNstackLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     const auto WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
 
-    if ((getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) || WINDOWSONWORKSPACE < WORKSPACEDATA->auto_demote) && MASTERSLEFT > 1) {
+    if (!PNODE->isMaster && (getMastersOnWorkspace(WORKSPACEID) == getNodesOnWorkspace(WORKSPACEID) || WINDOWSONWORKSPACE < WORKSPACEDATA->auto_demote) && MASTERSLEFT > 1) {
         for (auto it = m_lMasterNodesData.rbegin(); it != m_lMasterNodesData.rend(); it++) {
             if (it->workspaceID == WORKSPACEID) {
                 it->isMaster = false;
