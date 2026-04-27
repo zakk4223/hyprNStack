@@ -1,4 +1,5 @@
 #include "nstackLayout.hpp"
+#include <hyprland/src/config/shared/workspace/WorkspaceRuleManager.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/debug/log/Logger.hpp>
@@ -49,8 +50,9 @@ int CHyprNstackAlgorithm::getMastersCount() {
 
 void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
 
-    const auto         wsrule       = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
-    const auto         wslayoutopts = wsrule.layoutopts;
+    const auto                         wsrule       = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent->space()->workspace());
+    static const std::map<std::string, std::string> EMPTY_LAYOUT_OPTS;
+    const auto&                        wslayoutopts = wsrule ? wsrule->m_layoutopts : EMPTY_LAYOUT_OPTS;
 
     static auto* const orientation   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
     std::string        wsorientation = *orientation;
@@ -845,7 +847,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         g_pInputManager->m_forcedFocus.reset();
     };
 
-    CVarList2 vars(std::string{sv}, 0, 's');
+    Hyprutils::String::CVarList2 vars(std::string{sv}, 0, 's');
 
     if (vars.size() < 1 || vars[0].empty()) {
         Log::logger->log(Log::ERR, "layoutmsg called without params");
@@ -1151,4 +1153,3 @@ void CHyprNstackAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eColO
         }
     }
 }
-
