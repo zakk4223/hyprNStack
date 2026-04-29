@@ -3,11 +3,11 @@
 #include "globals.hpp"
 #include <string_view>
 #include <vector>
-#include <expected>
 
 #include <hyprland/src/layout/algorithm/TiledAlgorithm.hpp>
 #include <hyprland/src/helpers/memory/Memory.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
+#include <hyprland/src/config/shared/ConfigErrors.hpp>
 #include <hyprutils/string/VarList2.hpp>
 
 
@@ -88,7 +88,7 @@ namespace Layout::Tiled {
 	    virtual void                    recalculate();
 	
 	    virtual SP<ITarget>              getNextCandidate(SP<ITarget> old);
-	    virtual std::expected<void, std::string>                 layoutMsg(const std::string_view& sv);
+	    virtual Config::ErrorResult                 layoutMsg(const std::string_view& sv);
 	    virtual std::optional<Vector2D>                 predictSizeForNewTarget();
 	    virtual void                     swapTargets(SP<ITarget> a, SP<ITarget> b);
       virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);

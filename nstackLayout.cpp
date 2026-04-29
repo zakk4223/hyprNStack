@@ -949,7 +949,7 @@ void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection
     }
 }
 
-std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CHyprNstackAlgorithm::layoutMsg(const std::string_view& sv) {
 
     auto switchToWindow = [&](SP<ITarget> target) {
         if (!target || !validMapped(target->window()))
@@ -978,7 +978,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
 
     if (vars.size() < 1 || vars[0].empty()) {
         Log::logger->log(Log::ERR, "layoutmsg called without params");
-        return std::unexpected("layoutmsg without params"); 
+        return Config::configError("layoutmsg without params"); 
     }
 
     auto command = vars[0];
@@ -993,15 +993,15 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     if (command == "swapwithmaster") {
 
         if (!PWINDOW)
-            return std::unexpected("No focused window");
+            return Config::configError("No focused window");
 
         if (!isWindowTiled(PWINDOW))
-            return std::unexpected("focused window isn't tiled");
+            return Config::configError("focused window isn't tiled");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master node");
+            return Config::configError("no master node");
 
         const auto NEWCHILD = PMASTER->pTarget.lock();
 
@@ -1033,12 +1033,12 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     else if (command == "focusmaster") {
 
         if (!PWINDOW)
-            return std::unexpected("no focused window");
+            return Config::configError("no focused window");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master");
+            return Config::configError("no master");
 
         if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
             switchToWindow(PMASTER->pTarget.lock());
@@ -1058,7 +1058,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "cyclenext") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
         const auto PNEXTWINDOW = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
@@ -1066,14 +1066,14 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "cycleprev") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
         const auto PPREVWINDOW = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
         switchToWindow(PPREVWINDOW);
     } else if (command == "swapnext") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapnext"]("");
@@ -1088,7 +1088,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         }
     } else if (command == "swapprev") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapprev"]("");
@@ -1103,10 +1103,10 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         }
     } else if (command == "swapdirection") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (vars.size() < 2 || vars[1].empty())
-            return std::unexpected("missing direction");
+            return Config::configError("missing direction");
 
         if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapwindow"](std::string{vars[1]});
@@ -1116,7 +1116,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const bool NOLOOP             = vars.size() >= 3 && vars[2] == "noloop";
         const auto DIR                = Math::fromChar(vars[1][0]);
         if (DIR == Math::DIRECTION_DEFAULT)
-            return std::unexpected("bad direction");
+            return Config::configError("bad direction");
 
         const auto PWINDOWTOSWAPWITH = getDirectionalTarget(PWINDOW->layoutTarget(), DIR, !NOLOOP);
         if (PWINDOWTOSWAPWITH) {
@@ -1124,10 +1124,10 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         }
     } else if (command == "addmaster") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window is floating");
+            return Config::configError("window is floating");
 
         const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -1148,10 +1148,10 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "removemaster") {
 
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window isn't tiled");
+            return Config::configError("window isn't tiled");
 
         const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -1159,7 +1159,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto MASTERS = getMastersCount();
 
         if (WINDOWS < 2 || MASTERS < 2)
-            return std::unexpected("nothing to do");
+            return Config::configError("nothing to do");
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -1178,7 +1178,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
                command == "orientationhcenter" || command == "orientationvcenter") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 
 		    g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
@@ -1205,20 +1205,20 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         runOrientationCycle(&vars, 1);
     } else if (command == "resetsplits") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
         resetNodeSplits();
   	} else if (command == "mfact") {
 		   const bool exact = vars[1] == "exact";
 			 float ratio = 0.F;
 		   try {
          ratio = std::stof(std::string{exact ? vars[2] : vars[1]});
-   		} catch (...) { return std::unexpected("bad ratio");}
+   		} catch (...) { return Config::configError("bad ratio");}
 		  float newRatio = exact ? ratio : m_userWorkspaceData.master_factor.value_or(m_workspaceData.master_factor) + ratio;
 		  m_userWorkspaceData.master_factor = std::clamp(newRatio, 0.05f, 0.95f);
 		  recalculate();
     } else if (command == "setstackcount") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
         if (vars.size() >= 2) {
             int newStackCount = 2;
             switch (vars[1][0]) {
