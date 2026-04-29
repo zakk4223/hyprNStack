@@ -120,6 +120,7 @@ namespace Layout::Tiled {
 			void 														applyWorkspaceLayoutOptions();
       bool 														isWindowTiled(PHLWINDOW pWindow);
 	    SP<ITarget>                     getNextTarget(SP<ITarget>, bool, bool);
+	    SP<ITarget>                     getDirectionalTarget(SP<ITarget>, Math::eDirection, bool);
 	
 	    friend struct SNstackNodeData;
 	    friend struct SNstackWorkspaceData;

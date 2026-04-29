@@ -1,4 +1,6 @@
 #include "nstackLayout.hpp"
+#include <limits>
+#include <hyprland/src/config/shared/workspace/WorkspaceRuleManager.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/debug/log/Logger.hpp>
@@ -793,6 +795,84 @@ SP<SNstackNodeData> CHyprNstackAlgorithm::getClosestNode(const Vector2D& point) 
     }
     return res;
 }
+
+SP<ITarget> CHyprNstackAlgorithm::getDirectionalTarget(SP<ITarget> t, Math::eDirection dir, bool loop) {
+    if (!t || !validMapped(t->window()))
+        return nullptr;
+
+    if (const auto PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir); PWINDOW2 && PWINDOW2 != t->window() && PWINDOW2->m_workspace == t->window()->m_workspace) {
+        if (const auto NODE = getNodeFromWindow(PWINDOW2); NODE)
+            return NODE->pTarget.lock();
+    }
+
+    if (!loop)
+        return nullptr;
+
+    const auto CURRENT = getNodeFromTarget(t);
+    if (!CURRENT)
+        return nullptr;
+
+    const Vector2D CURRENTCENTER = CURRENT->position + CURRENT->size / 2.F;
+
+    SP<SNstackNodeData> directTarget = nullptr;
+    double              directScore  = std::numeric_limits<double>::infinity();
+    SP<SNstackNodeData> wrapTarget   = nullptr;
+    double              wrapScore    = std::numeric_limits<double>::infinity();
+
+    for (auto& n : m_lMasterNodesData) {
+        const auto TARGET = n->pTarget.lock();
+        if (!TARGET || TARGET == t || !validMapped(TARGET->window()) || TARGET->window()->m_workspace != t->window()->m_workspace)
+            continue;
+
+        const Vector2D CENTER = n->position + n->size / 2.F;
+        double         primaryDelta = 0;
+        double         crossDelta   = 0;
+        double         wrapPrimary  = 0;
+
+        switch (dir) {
+            case Math::DIRECTION_UP:
+                primaryDelta = CURRENTCENTER.y - CENTER.y;
+                crossDelta   = CURRENTCENTER.x - CENTER.x;
+                wrapPrimary  = -CENTER.y;
+                break;
+            case Math::DIRECTION_RIGHT:
+                primaryDelta = CENTER.x - CURRENTCENTER.x;
+                crossDelta   = CURRENTCENTER.y - CENTER.y;
+                wrapPrimary  = CENTER.x;
+                break;
+            case Math::DIRECTION_DOWN:
+                primaryDelta = CENTER.y - CURRENTCENTER.y;
+                crossDelta   = CURRENTCENTER.x - CENTER.x;
+                wrapPrimary  = CENTER.y;
+                break;
+            case Math::DIRECTION_LEFT:
+                primaryDelta = CURRENTCENTER.x - CENTER.x;
+                crossDelta   = CURRENTCENTER.y - CENTER.y;
+                wrapPrimary  = -CENTER.x;
+                break;
+            default: return nullptr;
+        }
+
+        const double crossScore = crossDelta * crossDelta;
+        if (primaryDelta > 0) {
+            const double score = primaryDelta * primaryDelta + crossScore;
+            if (score < directScore) {
+                directTarget = n;
+                directScore  = score;
+            }
+        }
+
+        const double score = wrapPrimary * 1000000.0 + crossScore;
+        if (score < wrapScore) {
+            wrapTarget = n;
+            wrapScore  = score;
+        }
+    }
+
+    const auto TARGET = directTarget ? directTarget : wrapTarget;
+    return TARGET ? TARGET->pTarget.lock() : nullptr;
+}
+
 void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
@@ -843,6 +923,17 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         g_pInputManager->m_forcedFocus = target->window(); 
         g_pInputManager->simulateMouseMovement();
         g_pInputManager->m_forcedFocus.reset();
+    };
+
+    auto swapWithWindow = [&](PHLWINDOW window, SP<ITarget> target) {
+        if (!window || !target || !validMapped(target->window()))
+            return;
+
+        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+        window->setAnimationsToMove();
+        target->window()->setAnimationsToMove();
+        g_layoutManager->switchTargets(window->layoutTarget(), target);
+        switchToWindow(window->layoutTarget());
     };
 
     CVarList2 vars(std::string{sv}, 0, 's');
@@ -955,26 +1046,43 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
-						switchToWindow(PWINDOW->layoutTarget());
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
         }
     } else if (command == "swapprev") {
         if (!validMapped(PWINDOW))
             return std::unexpected("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
-            g_pKeybindManager->m_dispatchers["swapnext"]("");
+            g_pKeybindManager->m_dispatchers["swapprev"]("");
             return {};
         }
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
-						switchToWindow(PWINDOW->layoutTarget());
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
+        }
+    } else if (command == "swapdirection") {
+        if (!validMapped(PWINDOW))
+            return std::unexpected("no window");
+
+        if (vars.size() < 2 || vars[1].empty())
+            return std::unexpected("missing direction");
+
+        if (PWINDOW->layoutTarget()->floating()) {
+            g_pKeybindManager->m_dispatchers["swapwindow"](std::string{vars[1]});
+            return {};
+        }
+
+        const bool NOLOOP             = vars.size() >= 3 && vars[2] == "noloop";
+        const auto DIR                = Math::fromChar(vars[1][0]);
+        if (DIR == Math::DIRECTION_DEFAULT)
+            return std::unexpected("bad direction");
+
+        const auto PWINDOWTOSWAPWITH = getDirectionalTarget(PWINDOW->layoutTarget(), DIR, !NOLOOP);
+        if (PWINDOWTOSWAPWITH) {
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
         }
     } else if (command == "addmaster") {
         if (!validMapped(PWINDOW))
@@ -1151,4 +1259,3 @@ void CHyprNstackAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eColO
         }
     }
 }
-
