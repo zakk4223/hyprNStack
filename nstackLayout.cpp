@@ -309,7 +309,7 @@ void CHyprNstackAlgorithm::calculateWorkspace() {
 	  });
 
 
-    auto            NUMSTACKS      = m_userWorkspaceData.m_iStackCount.value_or(m_workspaceData.m_iStackCount);
+    auto            NUMSTACKS      = std::max(2, m_userWorkspaceData.m_iStackCount.value_or(m_workspaceData.m_iStackCount));
 
     const auto      NODECOUNT   = getNodesNo();
 
