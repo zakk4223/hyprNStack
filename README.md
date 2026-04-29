@@ -38,9 +38,10 @@ All configuration variables are also usable as workspace rule layout options. Ju
 
 # Dispatchers
 
-Two new dispatchers
+New dispatchers
  * `resetsplits` Reset all the window splits to default sizes.
  * `setstackcount` Change the number of stacks for the current workspace. Windows will be re-tiled to fit the new stack count.
+ * `swapdirection <left|right|up|down> [noloop]` Swap the focused tiled window directionally, wrapping at workspace edges unless `noloop` is set.
 
 Two new-ish orientations
  * `orientationhcenter` Master is horizontally centered with stacks to the left and right. 
