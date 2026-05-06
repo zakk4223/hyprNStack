@@ -260,10 +260,6 @@ void CHyprNstackAlgorithm::calculateWorkspace() {
 
 	  Hyprutils::Utils::CScopeGuard x([this] {
 		    g_pHyprRenderer->damageMonitor(m_parent->space()->workspace()->m_monitor.lock());
-		    
-		    for (const auto& n : m_lMasterNodesData) {
-          n->pTarget->warpPositionSize();
-    		}
 	  });
 
 
@@ -823,6 +819,7 @@ void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection
         t->assignToSpace(targetWs->m_space, focalPointForDir(t, dir));
     } else if (PWINDOW2) {
         // if same monitor, switch windows
+        PWINDOW2->setAnimationsToMove();
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
         if (silent)
             Desktop::focusState()->fullWindowFocus(PWINDOW2, Desktop::FOCUS_REASON_KEYBIND);
