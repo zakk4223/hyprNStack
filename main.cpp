@@ -21,6 +21,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CStringValue>("plugin:nstack:layout:orientation", "orientation", "left"));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:nstack:layout:new_on_top", "new on top", 0));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:nstack:layout:new_near_focused", "new near focused", 1));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:nstack:layout:new_is_master", "new is master", 0));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:nstack:layout:no_gaps_when_only", "no gaps when only", 1));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CFloatValue>("plugin:nstack:layout:special_scale_factor", "special scale factor", 0.8f));
