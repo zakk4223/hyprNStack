@@ -102,7 +102,7 @@ namespace Layout::Tiled {
 	
 	    bool                            m_bForceWarps = false;
 	
-	    void                            addTarget(SP<ITarget> target, bool firstMap);
+	    void                            addTarget(SP<ITarget> target, bool firstMap, std::optional<Vector2D> insertionPoint = std::nullopt);
 	    void                            buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, Hyprutils::String::CVarList2* vars);
 	    void                            buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle);
 	    void                            runOrientationCycle(Hyprutils::String::CVarList2* vars, int next);
