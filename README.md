@@ -13,6 +13,7 @@ plugin {
     layout {
       orientation=left
       new_on_top=0
+      new_near_focused=1
       new_is_master=1
       no_gaps_when_only=0
       special_scale_factor=0.8

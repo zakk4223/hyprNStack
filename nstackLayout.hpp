@@ -58,6 +58,7 @@ namespace Layout::Tiled {
 	    std::vector<int>   stackNodeCount;
 	    int                m_iStackCount        = 2;
 	    bool               new_on_top           = false;
+	    bool               new_near_focused     = true;
 	    bool               new_is_master        = true;
 	    bool               center_single_master = false;
 	    bool               inherit_fullscreen   = true;

@@ -57,6 +57,11 @@ static const CConfigValue<Config::INTEGER>& nstackNewOnTop() {
     return value;
 }
 
+static const CConfigValue<Config::INTEGER>& nstackNewNearFocused() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:new_near_focused");
+    return value;
+}
+
 static const CConfigValue<Config::INTEGER>& nstackNewIsMaster() {
     static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:new_is_master");
     return value;
@@ -171,6 +176,11 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
         wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
     m_workspaceData.new_on_top = wsnewtop;
 
+    auto               wsnewnearfocused = *nstackNewNearFocused();
+    if (wslayoutopts.contains("nstack-new_near_focused"))
+        wsnewnearfocused = configStringToInt(wslayoutopts.at("nstack-new_near_focused")).value_or(0);
+    m_workspaceData.new_near_focused = wsnewnearfocused;
+
     auto               wsnewmaster = *nstackNewIsMaster();
     if (wslayoutopts.contains("nstack-new_is_master"))
         wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
@@ -228,12 +238,20 @@ void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
 
     const auto PMONITOR = PWORKSPACE->m_monitor;
 
-    const auto PNODE = m_workspaceData.new_on_top ? *m_lMasterNodesData.emplace(m_lMasterNodesData.begin(), makeShared<SNstackNodeData>()) : m_lMasterNodesData.emplace_back(makeShared<SNstackNodeData>());
-	  PNODE->pTarget = target;
-
     auto       OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
               getNodeFromWindow(Desktop::focusState()->window()) :
               getMasterNode();
+
+    auto INSERTPOSITION = m_workspaceData.new_on_top ? m_lMasterNodesData.begin() : m_lMasterNodesData.end();
+    if (m_workspaceData.new_near_focused && OPENINGON) {
+        const auto FOCUSEDPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
+        if (FOCUSEDPOSITION != m_lMasterNodesData.end()) {
+            INSERTPOSITION = std::next(FOCUSEDPOSITION);
+        }
+    }
+
+    const auto PNODE = *m_lMasterNodesData.emplace(INSERTPOSITION, makeShared<SNstackNodeData>());
+	  PNODE->pTarget = target;
 
 
     const auto WINDOWSONWORKSPACE = getNodesNo();
