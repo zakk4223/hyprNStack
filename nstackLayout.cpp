@@ -222,7 +222,10 @@ void CHyprNstackAlgorithm::newTarget(SP<ITarget> target) {
 }
 
 void CHyprNstackAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
-	addTarget(target, true);
+    if (!focalPoint)
+        focalPoint = target->position().middle();
+
+    addTarget(target, false, focalPoint);
 }
 
 
@@ -231,28 +234,37 @@ int CHyprNstackAlgorithm::getNodesNo() {
 }
 
 
-void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
-	  const auto PWORKSPACE = m_parent->space()->workspace();
+void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap, std::optional<Vector2D> insertionPoint) {
+    const auto PWORKSPACE = m_parent->space()->workspace();
 
-		applyWorkspaceLayoutOptions();
+    applyWorkspaceLayoutOptions();
 
     const auto PMONITOR = PWORKSPACE->m_monitor;
 
-    auto       OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
-              getNodeFromWindow(Desktop::focusState()->window()) :
-              getMasterNode();
+    auto       OPENINGON = getMasterNode();
+    if (insertionPoint)
+        OPENINGON = getClosestNode(*insertionPoint);
+    else if (isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE)
+        OPENINGON = getNodeFromWindow(Desktop::focusState()->window());
 
     auto INSERTPOSITION = m_workspaceData.new_on_top ? m_lMasterNodesData.begin() : m_lMasterNodesData.end();
-    if (m_workspaceData.new_near_focused && OPENINGON) {
-        const auto FOCUSEDPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
-        if (FOCUSEDPOSITION != m_lMasterNodesData.end()) {
-            INSERTPOSITION = std::next(FOCUSEDPOSITION);
+    if (insertionPoint && OPENINGON) {
+        const auto OPENINGPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
+        if (OPENINGPOSITION != m_lMasterNodesData.end()) {
+            const auto ORIENTATION    = m_userWorkspaceData.orientation.value_or(m_workspaceData.orientation);
+            const auto BOX            = OPENINGON->pTarget->position();
+            const bool VERTICALSTACKS = ORIENTATION == NSTACK_ORIENTATION_TOP || ORIENTATION == NSTACK_ORIENTATION_BOTTOM || ORIENTATION == NSTACK_ORIENTATION_VCENTER;
+            const bool INSERTAFTER    = VERTICALSTACKS ? insertionPoint->y > BOX.middle().y : insertionPoint->x > BOX.middle().x;
+            INSERTPOSITION            = INSERTAFTER ? std::next(OPENINGPOSITION) : OPENINGPOSITION;
         }
+    } else if (m_workspaceData.new_near_focused && OPENINGON) {
+        const auto FOCUSEDPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
+        if (FOCUSEDPOSITION != m_lMasterNodesData.end())
+            INSERTPOSITION = std::next(FOCUSEDPOSITION);
     }
 
     const auto PNODE = *m_lMasterNodesData.emplace(INSERTPOSITION, makeShared<SNstackNodeData>());
 	  PNODE->pTarget = target;
-
 
     const auto WINDOWSONWORKSPACE = getNodesNo();
     float      lastSplitPercent   = 0.5f;
@@ -841,7 +853,8 @@ SP<SNstackNodeData> CHyprNstackAlgorithm::getClosestNode(const Vector2D& point) 
     double              distClosest = -1;
     for (auto& n : m_lMasterNodesData) {
         if (n->pTarget && Desktop::View::validMapped(n->pTarget->window())) {
-            auto distAnother = vecToRectDistanceSquared(point, n->position, n->position + n->size);
+            const auto BOX         = n->pTarget->position();
+            auto       distAnother = vecToRectDistanceSquared(point, BOX.pos(), BOX.pos() + BOX.size());
             if (!res || distAnother < distClosest) {
                 res         = n;
                 distClosest = distAnother;
