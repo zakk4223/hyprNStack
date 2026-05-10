@@ -28,7 +28,7 @@
 using namespace Layout;
 using namespace Layout::Tiled;
 
-static std::optional<Config::INTEGER> configStringToInt(const std::string& value) {
+static std::optional<Config::INTEGER> nstackConfigStringToInt(const std::string& value) {
     if (value == "true" || value == "on" || value == "yes")
         return 1;
     if (value == "false" || value == "off" || value == "no")
@@ -188,32 +188,32 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
 
     auto               wsnewtop = *nstackNewOnTop();
     if (wslayoutopts.contains("nstack-new_on_top"))
-        wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
+        wsnewtop = nstackConfigStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
     m_workspaceData.new_on_top = wsnewtop;
 
     auto               wsnewnearfocused = *nstackNewNearFocused();
     if (wslayoutopts.contains("nstack-new_near_focused"))
-        wsnewnearfocused = configStringToInt(wslayoutopts.at("nstack-new_near_focused")).value_or(0);
+        wsnewnearfocused = nstackConfigStringToInt(wslayoutopts.at("nstack-new_near_focused")).value_or(0);
     m_workspaceData.new_near_focused = wsnewnearfocused;
 
     auto               wsnewmaster = *nstackNewIsMaster();
     if (wslayoutopts.contains("nstack-new_is_master"))
-        wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
+        wsnewmaster = nstackConfigStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
     m_workspaceData.new_is_master = wsnewmaster;
 
     auto               wsngwo = *nstackNoGapsWhenOnly();
     if (wslayoutopts.contains("nstack-no_gaps_when_only"))
-        wsngwo = configStringToInt(wslayoutopts.at("nstack-no_gaps_when_only")).value_or(0);
+        wsngwo = nstackConfigStringToInt(wslayoutopts.at("nstack-no_gaps_when_only")).value_or(0);
     m_workspaceData.no_gaps_when_only = wsngwo;
 
     auto               wsinheritfs = *nstackInheritFullscreen();
     if (wslayoutopts.contains("nstack-inherit_fullscreen"))
-        wsinheritfs = configStringToInt(wslayoutopts.at("nstack-inherit_fullscreen")).value_or(0);
+        wsinheritfs = nstackConfigStringToInt(wslayoutopts.at("nstack-inherit_fullscreen")).value_or(0);
     m_workspaceData.inherit_fullscreen = wsinheritfs;
 
     auto               wscentersm = *nstackCenterSingleMaster();
     if (wslayoutopts.contains("nstack-center_single_master"))
-        wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
+        wscentersm = nstackConfigStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
     m_workspaceData.center_single_master = wscentersm;
 }
 
@@ -335,7 +335,7 @@ void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap, std::opt
 }
 
 
-void CHyprNstackAlgorithm::recalculate(eRecalculateReason reason) {
+void CHyprNstackAlgorithm::recalculate() {
 	calculateWorkspace();
 }
 
