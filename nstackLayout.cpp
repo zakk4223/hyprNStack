@@ -20,12 +20,27 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <format>
+#include <optional>
 
 
 
 
 using namespace Layout;
 using namespace Layout::Tiled;
+
+static std::optional<Config::INTEGER> configStringToInt(const std::string& value) {
+    if (value == "true" || value == "on" || value == "yes")
+        return 1;
+    if (value == "false" || value == "off" || value == "no")
+        return 0;
+
+    try {
+        return std::stoll(value);
+    } catch (std::exception& e) {
+        Log::logger->log(Log::ERR, "Nstack layoutopt integer format error for '{}': {}", value, e.what());
+        return std::nullopt;
+    }
+}
 
 static const CConfigValue<Config::STRING>& nstackOrientation() {
     static const CConfigValue<Config::STRING> value("plugin:nstack:layout:orientation");
@@ -320,7 +335,7 @@ void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap, std::opt
 }
 
 
-void CHyprNstackAlgorithm::recalculate() {
+void CHyprNstackAlgorithm::recalculate(eRecalculateReason reason) {
 	calculateWorkspace();
 }
 
