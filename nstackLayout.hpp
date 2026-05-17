@@ -8,7 +8,14 @@
 #include <hyprland/src/helpers/memory/Memory.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/config/shared/ConfigErrors.hpp>
+#include <hyprland/src/version.h>
 #include <hyprutils/string/VarList2.hpp>
+
+#if defined(AQUAMARINE_VERSION_MAJOR) && (AQUAMARINE_VERSION_MAJOR > 0 || AQUAMARINE_VERSION_MINOR >= 11)
+#define HYPRNSTACK_HAS_RECALCULATE_REASON 1
+#else
+#define HYPRNSTACK_HAS_RECALCULATE_REASON 0
+#endif
 
 
 
@@ -86,7 +93,11 @@ namespace Layout::Tiled {
 	    virtual void                    movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
 	    virtual void                    removeTarget(SP<ITarget> target);
 	    virtual void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+#if HYPRNSTACK_HAS_RECALCULATE_REASON
+	    virtual void                    recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+#else
 	    virtual void                    recalculate();
+#endif
 	
 	    virtual SP<ITarget>              getNextCandidate(SP<ITarget> old);
 	    virtual Config::ErrorResult                 layoutMsg(const std::string_view& sv);
