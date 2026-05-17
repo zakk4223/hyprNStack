@@ -1,4 +1,6 @@
 #include "nstackLayout.hpp"
+#include <limits>
+#include <hyprland/src/config/shared/workspace/WorkspaceRuleManager.hpp>
 #include <hyprland/src/desktop/Workspace.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/debug/log/Logger.hpp>
@@ -18,12 +20,82 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <format>
+#include <optional>
 
 
 
 
 using namespace Layout;
 using namespace Layout::Tiled;
+
+static std::optional<Config::INTEGER> nstackConfigStringToInt(const std::string& value) {
+    if (value == "true" || value == "on" || value == "yes")
+        return 1;
+    if (value == "false" || value == "off" || value == "no")
+        return 0;
+
+    try {
+        return std::stoll(value);
+    } catch (std::exception& e) {
+        Log::logger->log(Log::ERR, "Nstack layoutopt integer format error for '{}': {}", value, e.what());
+        return std::nullopt;
+    }
+}
+
+static const CConfigValue<Config::STRING>& nstackOrientation() {
+    static const CConfigValue<Config::STRING> value("plugin:nstack:layout:orientation");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackStacks() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:stacks");
+    return value;
+}
+
+static const CConfigValue<Config::FLOAT>& nstackMasterFactor() {
+    static const CConfigValue<Config::FLOAT> value("plugin:nstack:layout:mfact");
+    return value;
+}
+
+static const CConfigValue<Config::FLOAT>& nstackSingleMasterFactor() {
+    static const CConfigValue<Config::FLOAT> value("plugin:nstack:layout:single_mfact");
+    return value;
+}
+
+static const CConfigValue<Config::FLOAT>& nstackSpecialScaleFactor() {
+    static const CConfigValue<Config::FLOAT> value("plugin:nstack:layout:special_scale_factor");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackNewOnTop() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:new_on_top");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackNewNearFocused() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:new_near_focused");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackNewIsMaster() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:new_is_master");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackNoGapsWhenOnly() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:no_gaps_when_only");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackInheritFullscreen() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:inherit_fullscreen");
+    return value;
+}
+
+static const CConfigValue<Config::INTEGER>& nstackCenterSingleMaster() {
+    static const CConfigValue<Config::INTEGER> value("plugin:nstack:layout:center_single_master");
+    return value;
+}
 
 SP<SNstackNodeData> CHyprNstackAlgorithm::getNodeFromTarget(SP<ITarget> x) {
     for (auto& nd : m_lMasterNodesData) {
@@ -49,11 +121,11 @@ int CHyprNstackAlgorithm::getMastersCount() {
 
 void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
 
-    const auto         wsrule       = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
-    const auto         wslayoutopts = wsrule.layoutopts;
+    const auto                         wsrule       = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent->space()->workspace());
+    static const std::map<std::string, std::string> EMPTY_LAYOUT_OPTS;
+    const auto&                        wslayoutopts = wsrule ? wsrule->m_layoutopts : EMPTY_LAYOUT_OPTS;
 
-    static auto* const orientation   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:orientation")->getDataStaticPtr();
-    std::string        wsorientation = *orientation;
+    std::string        wsorientation = *nstackOrientation();
 
     if (wslayoutopts.contains("nstack-orientation"))
         wsorientation = wslayoutopts.at("nstack-orientation");
@@ -74,8 +146,7 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
         m_workspaceData.orientation = NSTACK_ORIENTATION_HCENTER;
     }
 
-    static auto* const NUMSTACKS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:stacks")->getDataStaticPtr();
-    auto               wsstacks  = **NUMSTACKS;
+    auto               wsstacks  = *nstackStacks();
 
     if (wslayoutopts.contains("nstack-stacks")) {
         try {
@@ -87,8 +158,7 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
         m_workspaceData.m_iStackCount = wsstacks;
     }
 
-    static auto* const MFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:mfact")->getDataStaticPtr();
-    auto               wsmfact = **MFACT;
+    auto               wsmfact = *nstackMasterFactor();
     if (wslayoutopts.contains("nstack-mfact")) {
         std::string mfactstr = wslayoutopts.at("nstack-mfact");
         try {
@@ -97,8 +167,7 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
     }
     m_workspaceData.master_factor = wsmfact;
 
-    static auto* const SMFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:single_mfact")->getDataStaticPtr();
-    auto               wssmfact = **SMFACT;
+    auto               wssmfact = *nstackSingleMasterFactor();
 
     if (wslayoutopts.contains("nstack-single_mfact")) {
         std::string smfactstr = wslayoutopts.at("nstack-single_mfact");
@@ -108,8 +177,7 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
     }
     m_workspaceData.single_master_factor = wssmfact;
 
-    static auto* const SSFACT   = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:special_scale_factor")->getDataStaticPtr();
-    auto               wsssfact = **SSFACT;
+    auto               wsssfact = *nstackSpecialScaleFactor();
     if (wslayoutopts.contains("nstack-special_scale_factor")) {
         std::string ssfactstr = wslayoutopts.at("nstack-special_scale_factor");
         try {
@@ -118,34 +186,34 @@ void CHyprNstackAlgorithm::applyWorkspaceLayoutOptions() {
     }
     m_workspaceData.special_scale_factor = wsssfact;
 
-    static auto* const NEWTOP   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_on_top")->getDataStaticPtr();
-    auto               wsnewtop = **NEWTOP;
+    auto               wsnewtop = *nstackNewOnTop();
     if (wslayoutopts.contains("nstack-new_on_top"))
-        wsnewtop = configStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
+        wsnewtop = nstackConfigStringToInt(wslayoutopts.at("nstack-new_on_top")).value_or(0);
     m_workspaceData.new_on_top = wsnewtop;
 
-    static auto* const NEWMASTER   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:new_is_master")->getDataStaticPtr();
-    auto               wsnewmaster = **NEWMASTER;
+    auto               wsnewnearfocused = *nstackNewNearFocused();
+    if (wslayoutopts.contains("nstack-new_near_focused"))
+        wsnewnearfocused = nstackConfigStringToInt(wslayoutopts.at("nstack-new_near_focused")).value_or(0);
+    m_workspaceData.new_near_focused = wsnewnearfocused;
+
+    auto               wsnewmaster = *nstackNewIsMaster();
     if (wslayoutopts.contains("nstack-new_is_master"))
-        wsnewmaster = configStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
+        wsnewmaster = nstackConfigStringToInt(wslayoutopts.at("nstack-new_is_master")).value_or(0);
     m_workspaceData.new_is_master = wsnewmaster;
 
-    static auto* const NGWO   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:no_gaps_when_only")->getDataStaticPtr();
-    auto               wsngwo = **NGWO;
+    auto               wsngwo = *nstackNoGapsWhenOnly();
     if (wslayoutopts.contains("nstack-no_gaps_when_only"))
-        wsngwo = configStringToInt(wslayoutopts.at("nstack-no_gaps_when_only")).value_or(0);
+        wsngwo = nstackConfigStringToInt(wslayoutopts.at("nstack-no_gaps_when_only")).value_or(0);
     m_workspaceData.no_gaps_when_only = wsngwo;
 
-    static auto* const INHERITFS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:inherit_fullscreen")->getDataStaticPtr();
-    auto               wsinheritfs = **INHERITFS;
+    auto               wsinheritfs = *nstackInheritFullscreen();
     if (wslayoutopts.contains("nstack-inherit_fullscreen"))
-        wsinheritfs = configStringToInt(wslayoutopts.at("nstack-inherit_fullscreen")).value_or(0);
+        wsinheritfs = nstackConfigStringToInt(wslayoutopts.at("nstack-inherit_fullscreen")).value_or(0);
     m_workspaceData.inherit_fullscreen = wsinheritfs;
 
-    static auto* const CENTERSM   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:nstack:layout:center_single_master")->getDataStaticPtr();
-    auto               wscentersm = **CENTERSM;
+    auto               wscentersm = *nstackCenterSingleMaster();
     if (wslayoutopts.contains("nstack-center_single_master"))
-        wscentersm = configStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
+        wscentersm = nstackConfigStringToInt(wslayoutopts.at("nstack-center_single_master")).value_or(0);
     m_workspaceData.center_single_master = wscentersm;
 }
 
@@ -169,7 +237,10 @@ void CHyprNstackAlgorithm::newTarget(SP<ITarget> target) {
 }
 
 void CHyprNstackAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
-	addTarget(target, true);
+    if (!focalPoint)
+        focalPoint = target->position().middle();
+
+    addTarget(target, false, focalPoint);
 }
 
 
@@ -178,20 +249,37 @@ int CHyprNstackAlgorithm::getNodesNo() {
 }
 
 
-void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
-	  const auto PWORKSPACE = m_parent->space()->workspace();
+void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap, std::optional<Vector2D> insertionPoint) {
+    const auto PWORKSPACE = m_parent->space()->workspace();
 
-		applyWorkspaceLayoutOptions();
+    applyWorkspaceLayoutOptions();
 
     const auto PMONITOR = PWORKSPACE->m_monitor;
 
-    const auto PNODE = m_workspaceData.new_on_top ? *m_lMasterNodesData.emplace(m_lMasterNodesData.begin(), makeShared<SNstackNodeData>()) : m_lMasterNodesData.emplace_back(makeShared<SNstackNodeData>());
+    auto       OPENINGON = getMasterNode();
+    if (insertionPoint)
+        OPENINGON = getClosestNode(*insertionPoint);
+    else if (isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE)
+        OPENINGON = getNodeFromWindow(Desktop::focusState()->window());
+
+    auto INSERTPOSITION = m_workspaceData.new_on_top ? m_lMasterNodesData.begin() : m_lMasterNodesData.end();
+    if (insertionPoint && OPENINGON) {
+        const auto OPENINGPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
+        if (OPENINGPOSITION != m_lMasterNodesData.end()) {
+            const auto ORIENTATION    = m_userWorkspaceData.orientation.value_or(m_workspaceData.orientation);
+            const auto BOX            = OPENINGON->pTarget->position();
+            const bool VERTICALSTACKS = ORIENTATION == NSTACK_ORIENTATION_TOP || ORIENTATION == NSTACK_ORIENTATION_BOTTOM || ORIENTATION == NSTACK_ORIENTATION_VCENTER;
+            const bool INSERTAFTER    = VERTICALSTACKS ? insertionPoint->y > BOX.middle().y : insertionPoint->x > BOX.middle().x;
+            INSERTPOSITION            = INSERTAFTER ? std::next(OPENINGPOSITION) : OPENINGPOSITION;
+        }
+    } else if (m_workspaceData.new_near_focused && OPENINGON) {
+        const auto FOCUSEDPOSITION = std::ranges::find(m_lMasterNodesData, OPENINGON);
+        if (FOCUSEDPOSITION != m_lMasterNodesData.end())
+            INSERTPOSITION = std::next(FOCUSEDPOSITION);
+    }
+
+    const auto PNODE = *m_lMasterNodesData.emplace(INSERTPOSITION, makeShared<SNstackNodeData>());
 	  PNODE->pTarget = target;
-
-    auto       OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
-              getNodeFromWindow(Desktop::focusState()->window()) :
-              getMasterNode();
-
 
     const auto WINDOWSONWORKSPACE = getNodesNo();
     float      lastSplitPercent   = 0.5f;
@@ -247,7 +335,12 @@ void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
 }
 
 
+#if HYPRNSTACK_HAS_RECALCULATE_REASON
+void CHyprNstackAlgorithm::recalculate(eRecalculateReason reason) {
+    (void)reason;
+#else
 void CHyprNstackAlgorithm::recalculate() {
+#endif
 	calculateWorkspace();
 }
 
@@ -260,14 +353,10 @@ void CHyprNstackAlgorithm::calculateWorkspace() {
 
 	  Hyprutils::Utils::CScopeGuard x([this] {
 		    g_pHyprRenderer->damageMonitor(m_parent->space()->workspace()->m_monitor.lock());
-		    
-		    for (const auto& n : m_lMasterNodesData) {
-          n->pTarget->warpPositionSize();
-    		}
 	  });
 
 
-    auto            NUMSTACKS      = m_userWorkspaceData.m_iStackCount.value_or(m_workspaceData.m_iStackCount);
+    auto            NUMSTACKS      = std::max(2, m_userWorkspaceData.m_iStackCount.value_or(m_workspaceData.m_iStackCount));
 
     const auto      NODECOUNT   = getNodesNo();
 
@@ -784,7 +873,8 @@ SP<SNstackNodeData> CHyprNstackAlgorithm::getClosestNode(const Vector2D& point) 
     double              distClosest = -1;
     for (auto& n : m_lMasterNodesData) {
         if (n->pTarget && Desktop::View::validMapped(n->pTarget->window())) {
-            auto distAnother = vecToRectDistanceSquared(point, n->position, n->position + n->size);
+            const auto BOX         = n->pTarget->position();
+            auto       distAnother = vecToRectDistanceSquared(point, BOX.pos(), BOX.pos() + BOX.size());
             if (!res || distAnother < distClosest) {
                 res         = n;
                 distClosest = distAnother;
@@ -793,6 +883,84 @@ SP<SNstackNodeData> CHyprNstackAlgorithm::getClosestNode(const Vector2D& point) 
     }
     return res;
 }
+
+SP<ITarget> CHyprNstackAlgorithm::getDirectionalTarget(SP<ITarget> t, Math::eDirection dir, bool loop) {
+    if (!t || !validMapped(t->window()))
+        return nullptr;
+
+    if (const auto PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir); PWINDOW2 && PWINDOW2 != t->window() && PWINDOW2->m_workspace == t->window()->m_workspace) {
+        if (const auto NODE = getNodeFromWindow(PWINDOW2); NODE)
+            return NODE->pTarget.lock();
+    }
+
+    if (!loop)
+        return nullptr;
+
+    const auto CURRENT = getNodeFromTarget(t);
+    if (!CURRENT)
+        return nullptr;
+
+    const Vector2D CURRENTCENTER = CURRENT->position + CURRENT->size / 2.F;
+
+    SP<SNstackNodeData> directTarget = nullptr;
+    double              directScore  = std::numeric_limits<double>::infinity();
+    SP<SNstackNodeData> wrapTarget   = nullptr;
+    double              wrapScore    = std::numeric_limits<double>::infinity();
+
+    for (auto& n : m_lMasterNodesData) {
+        const auto TARGET = n->pTarget.lock();
+        if (!TARGET || TARGET == t || !validMapped(TARGET->window()) || TARGET->window()->m_workspace != t->window()->m_workspace)
+            continue;
+
+        const Vector2D CENTER = n->position + n->size / 2.F;
+        double         primaryDelta = 0;
+        double         crossDelta   = 0;
+        double         wrapPrimary  = 0;
+
+        switch (dir) {
+            case Math::DIRECTION_UP:
+                primaryDelta = CURRENTCENTER.y - CENTER.y;
+                crossDelta   = CURRENTCENTER.x - CENTER.x;
+                wrapPrimary  = -CENTER.y;
+                break;
+            case Math::DIRECTION_RIGHT:
+                primaryDelta = CENTER.x - CURRENTCENTER.x;
+                crossDelta   = CURRENTCENTER.y - CENTER.y;
+                wrapPrimary  = CENTER.x;
+                break;
+            case Math::DIRECTION_DOWN:
+                primaryDelta = CENTER.y - CURRENTCENTER.y;
+                crossDelta   = CURRENTCENTER.x - CENTER.x;
+                wrapPrimary  = CENTER.y;
+                break;
+            case Math::DIRECTION_LEFT:
+                primaryDelta = CURRENTCENTER.x - CENTER.x;
+                crossDelta   = CURRENTCENTER.y - CENTER.y;
+                wrapPrimary  = -CENTER.x;
+                break;
+            default: return nullptr;
+        }
+
+        const double crossScore = crossDelta * crossDelta;
+        if (primaryDelta > 0) {
+            const double score = primaryDelta * primaryDelta + crossScore;
+            if (score < directScore) {
+                directTarget = n;
+                directScore  = score;
+            }
+        }
+
+        const double score = wrapPrimary * 1000000.0 + crossScore;
+        if (score < wrapScore) {
+            wrapTarget = n;
+            wrapScore  = score;
+        }
+    }
+
+    const auto TARGET = directTarget ? directTarget : wrapTarget;
+    return TARGET ? TARGET->pTarget.lock() : nullptr;
+}
+
 void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
@@ -823,6 +991,7 @@ void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection
         t->assignToSpace(targetWs->m_space, focalPointForDir(t, dir));
     } else if (PWINDOW2) {
         // if same monitor, switch windows
+        PWINDOW2->setAnimationsToMove();
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
         if (silent)
             Desktop::focusState()->fullWindowFocus(PWINDOW2, Desktop::FOCUS_REASON_KEYBIND);
@@ -831,7 +1000,7 @@ void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection
     }
 }
 
-std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CHyprNstackAlgorithm::layoutMsg(const std::string_view& sv) {
 
     auto switchToWindow = [&](SP<ITarget> target) {
         if (!target || !validMapped(target->window()))
@@ -845,11 +1014,22 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         g_pInputManager->m_forcedFocus.reset();
     };
 
-    CVarList2 vars(std::string{sv}, 0, 's');
+    auto swapWithWindow = [&](PHLWINDOW window, SP<ITarget> target) {
+        if (!window || !target || !validMapped(target->window()))
+            return;
+
+        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+        window->setAnimationsToMove();
+        target->window()->setAnimationsToMove();
+        g_layoutManager->switchTargets(window->layoutTarget(), target);
+        switchToWindow(window->layoutTarget());
+    };
+
+    Hyprutils::String::CVarList2 vars(std::string{sv}, 0, 's');
 
     if (vars.size() < 1 || vars[0].empty()) {
         Log::logger->log(Log::ERR, "layoutmsg called without params");
-        return std::unexpected("layoutmsg without params"); 
+        return Config::configError("layoutmsg without params"); 
     }
 
     auto command = vars[0];
@@ -864,15 +1044,15 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     if (command == "swapwithmaster") {
 
         if (!PWINDOW)
-            return std::unexpected("No focused window");
+            return Config::configError("No focused window");
 
         if (!isWindowTiled(PWINDOW))
-            return std::unexpected("focused window isn't tiled");
+            return Config::configError("focused window isn't tiled");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master node");
+            return Config::configError("no master node");
 
         const auto NEWCHILD = PMASTER->pTarget.lock();
 
@@ -904,12 +1084,12 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     else if (command == "focusmaster") {
 
         if (!PWINDOW)
-            return std::unexpected("no focused window");
+            return Config::configError("no focused window");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master");
+            return Config::configError("no master");
 
         if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
             switchToWindow(PMASTER->pTarget.lock());
@@ -929,7 +1109,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "cyclenext") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
         const auto PNEXTWINDOW = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
@@ -937,14 +1117,14 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "cycleprev") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
         const auto PPREVWINDOW = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
         switchToWindow(PPREVWINDOW);
     } else if (command == "swapnext") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapnext"]("");
@@ -955,33 +1135,50 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
-						switchToWindow(PWINDOW->layoutTarget());
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
         }
     } else if (command == "swapprev") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
-            g_pKeybindManager->m_dispatchers["swapnext"]("");
+            g_pKeybindManager->m_dispatchers["swapprev"]("");
             return {};
         }
 
 		    const bool NOLOOP = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
-						switchToWindow(PWINDOW->layoutTarget());
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
+        }
+    } else if (command == "swapdirection") {
+        if (!validMapped(PWINDOW))
+            return Config::configError("no window");
+
+        if (vars.size() < 2 || vars[1].empty())
+            return Config::configError("missing direction");
+
+        if (PWINDOW->layoutTarget()->floating()) {
+            g_pKeybindManager->m_dispatchers["swapwindow"](std::string{vars[1]});
+            return {};
+        }
+
+        const bool NOLOOP             = vars.size() >= 3 && vars[2] == "noloop";
+        const auto DIR                = Math::fromChar(vars[1][0]);
+        if (DIR == Math::DIRECTION_DEFAULT)
+            return Config::configError("bad direction");
+
+        const auto PWINDOWTOSWAPWITH = getDirectionalTarget(PWINDOW->layoutTarget(), DIR, !NOLOOP);
+        if (PWINDOWTOSWAPWITH) {
+            swapWithWindow(PWINDOW, PWINDOWTOSWAPWITH);
         }
     } else if (command == "addmaster") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window is floating");
+            return Config::configError("window is floating");
 
         const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -1002,10 +1199,10 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
     } else if (command == "removemaster") {
 
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window isn't tiled");
+            return Config::configError("window isn't tiled");
 
         const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -1013,7 +1210,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto MASTERS = getMastersCount();
 
         if (WINDOWS < 2 || MASTERS < 2)
-            return std::unexpected("nothing to do");
+            return Config::configError("nothing to do");
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -1032,7 +1229,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
                command == "orientationhcenter" || command == "orientationvcenter") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
 
 
 		    g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
@@ -1059,20 +1256,20 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         runOrientationCycle(&vars, 1);
     } else if (command == "resetsplits") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
         resetNodeSplits();
   	} else if (command == "mfact") {
 		   const bool exact = vars[1] == "exact";
 			 float ratio = 0.F;
 		   try {
          ratio = std::stof(std::string{exact ? vars[2] : vars[1]});
-   		} catch (...) { return std::unexpected("bad ratio");}
+   		} catch (...) { return Config::configError("bad ratio");}
 		  float newRatio = exact ? ratio : m_userWorkspaceData.master_factor.value_or(m_workspaceData.master_factor) + ratio;
 		  m_userWorkspaceData.master_factor = std::clamp(newRatio, 0.05f, 0.95f);
 		  recalculate();
     } else if (command == "setstackcount") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return Config::configError("no window");
         if (vars.size() >= 2) {
             int newStackCount = 2;
             switch (vars[1][0]) {
@@ -1151,4 +1348,3 @@ void CHyprNstackAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eColO
         }
     }
 }
-

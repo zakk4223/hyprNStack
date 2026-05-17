@@ -3,12 +3,19 @@
 #include "globals.hpp"
 #include <string_view>
 #include <vector>
-#include <expected>
 
 #include <hyprland/src/layout/algorithm/TiledAlgorithm.hpp>
 #include <hyprland/src/helpers/memory/Memory.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
+#include <hyprland/src/config/shared/ConfigErrors.hpp>
+#include <hyprland/src/version.h>
 #include <hyprutils/string/VarList2.hpp>
+
+#if defined(AQUAMARINE_VERSION_MAJOR) && (AQUAMARINE_VERSION_MAJOR > 0 || AQUAMARINE_VERSION_MINOR >= 11)
+#define HYPRNSTACK_HAS_RECALCULATE_REASON 1
+#else
+#define HYPRNSTACK_HAS_RECALCULATE_REASON 0
+#endif
 
 
 
@@ -58,6 +65,7 @@ namespace Layout::Tiled {
 	    std::vector<int>   stackNodeCount;
 	    int                m_iStackCount        = 2;
 	    bool               new_on_top           = false;
+	    bool               new_near_focused     = true;
 	    bool               new_is_master        = true;
 	    bool               center_single_master = false;
 	    bool               inherit_fullscreen   = true;
@@ -85,10 +93,14 @@ namespace Layout::Tiled {
 	    virtual void                    movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
 	    virtual void                    removeTarget(SP<ITarget> target);
 	    virtual void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+#if HYPRNSTACK_HAS_RECALCULATE_REASON
+	    virtual void                    recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+#else
 	    virtual void                    recalculate();
+#endif
 	
 	    virtual SP<ITarget>              getNextCandidate(SP<ITarget> old);
-	    virtual std::expected<void, std::string>                 layoutMsg(const std::string_view& sv);
+	    virtual Config::ErrorResult                 layoutMsg(const std::string_view& sv);
 	    virtual std::optional<Vector2D>                 predictSizeForNewTarget();
 	    virtual void                     swapTargets(SP<ITarget> a, SP<ITarget> b);
       virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
@@ -102,7 +114,7 @@ namespace Layout::Tiled {
 	
 	    bool                            m_bForceWarps = false;
 	
-	    void                            addTarget(SP<ITarget> target, bool firstMap);
+	    void                            addTarget(SP<ITarget> target, bool firstMap, std::optional<Vector2D> insertionPoint = std::nullopt);
 	    void                            buildOrientationCycleVectorFromVars(std::vector<eColOrientation>& cycle, Hyprutils::String::CVarList2* vars);
 	    void                            buildOrientationCycleVectorFromEOperation(std::vector<eColOrientation>& cycle);
 	    void                            runOrientationCycle(Hyprutils::String::CVarList2* vars, int next);
@@ -120,6 +132,7 @@ namespace Layout::Tiled {
 			void 														applyWorkspaceLayoutOptions();
       bool 														isWindowTiled(PHLWINDOW pWindow);
 	    SP<ITarget>                     getNextTarget(SP<ITarget>, bool, bool);
+	    SP<ITarget>                     getDirectionalTarget(SP<ITarget>, Math::eDirection, bool);
 	
 	    friend struct SNstackNodeData;
 	    friend struct SNstackWorkspaceData;
