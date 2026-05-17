@@ -247,7 +247,12 @@ void CHyprNstackAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
 }
 
 
+#if HYPRNSTACK_HAS_RECALCULATE_REASON
+void CHyprNstackAlgorithm::recalculate(eRecalculateReason reason) {
+    (void)reason;
+#else
 void CHyprNstackAlgorithm::recalculate() {
+#endif
 	calculateWorkspace();
 }
 
@@ -1151,4 +1156,3 @@ void CHyprNstackAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eColO
         }
     }
 }
-
