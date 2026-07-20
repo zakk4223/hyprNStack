@@ -8,15 +8,19 @@
 #include "src/layout/LayoutManager.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/layout/target/WindowTarget.hpp>
+#include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
+#include <hyprland/src/pointer/PointerController.hpp>
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
 #include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
 #include <hyprutils/cli/Logger.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/state/MonitorState.hpp>
 #include <format>
 
 
@@ -699,8 +703,8 @@ void CHyprNstackAlgorithm::removeTarget(SP<ITarget> target) {
     if (!PNODE)
         return;
 
-    if (target->fullscreenMode() != FSMODE_NONE)
-        g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
+    if (Fullscreen::controller()->isFullscreen(target->window()))
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
 
     const auto MASTERSLEFT = getMastersCount();
 
@@ -796,7 +800,7 @@ SP<SNstackNodeData> CHyprNstackAlgorithm::getClosestNode(const Vector2D& point) 
 void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
-    const auto  PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
+    const auto  PWINDOW2 = Desktop::windowState()->query().inDirection(t->window(), dir);
 
     if (!t->window())
         return;
@@ -805,7 +809,7 @@ void CHyprNstackAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection
 
     if (!PWINDOW2 && t->space() && t->space()->workspace()) {
         // try to find a monitor in dir
-        const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
+        const auto PMONINDIR = State::monitorState()->query().relativeTo(t->space()->workspace()->m_monitor.lock()).inDirection(dir).run();
         if (PMONINDIR)
             targetWs = PMONINDIR->m_activeWorkspace;
     } else
@@ -838,7 +842,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
             return;
 
         Desktop::focusState()->fullWindowFocus(target->window(), Desktop::FOCUS_REASON_KEYBIND);
-        g_pCompositor->warpCursorTo(target->position().middle());
+        Pointer::pointerController()->warpTo(target->position().middle());
 
         g_pInputManager->m_forcedFocus = target->window(); 
         g_pInputManager->simulateMouseMovement();
@@ -955,7 +959,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+						Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
 						switchToWindow(PWINDOW->layoutTarget());
         }
@@ -972,7 +976,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-						g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+						Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 						g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
 						switchToWindow(PWINDOW->layoutTarget());
         }
@@ -1035,7 +1039,7 @@ std::expected<void, std::string> CHyprNstackAlgorithm::layoutMsg(const std::stri
             return std::unexpected("no window");
 
 
-		    g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+		    Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
         if (command == "orientationleft")
             m_userWorkspaceData.orientation = NSTACK_ORIENTATION_LEFT;
         else if (command == "orientationright")
@@ -1108,7 +1112,7 @@ void CHyprNstackAlgorithm::runOrientationCycle(Hyprutils::String::CVarList2* var
         return;
 
 
-	  g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+	  Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
 	  current_orientation = m_userWorkspaceData.orientation.value_or(m_workspaceData.orientation);
     int        nextOrPrev = 0;
@@ -1151,4 +1155,3 @@ void CHyprNstackAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eColO
         }
     }
 }
-
